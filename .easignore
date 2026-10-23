@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+.pnpm-store/
 
 # Expo
 .expo/
@@ -48,10 +49,8 @@ temp-builds
 .zed
 .idea
 
-# Secrets - Explicitly include the real ones
-!google-services.real.json
-!GoogleService-Info.real.plist
-!**/google-services.real.json
-!**/GoogleService-Info.real.plist
+# Keep local Firebase credentials out of EAS source archives.
+**/google-services.real.json
+**/GoogleService-Info.real.plist
 
 # Ignore the templates/dummies if necessary, but usually safe to keep
