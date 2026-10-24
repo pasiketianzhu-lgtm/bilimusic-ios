@@ -54,11 +54,11 @@ class AudioSpectrumAnalyzer {
             }
         )
         
-        var tap: Unmanaged<MTAudioProcessingTap>?
+        var tap: MTAudioProcessingTap?
         let err = MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks, kMTAudioProcessingTapCreationFlag_PreEffects, &tap)
         
         if err == noErr {
-            return tap?.takeRetainedValue()
+            return tap
         }
         
         return nil

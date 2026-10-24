@@ -96,9 +96,9 @@ public class ExpoOrpheusModule: Module {
 
         Property("isSpectrumVisualizerEnabled")
             .get { GeneralStorage.shared.isSpectrumVisualizerEnabled }
-            .set {
-                GeneralStorage.shared.isSpectrumVisualizerEnabled = $0
-                self.sendEvent("onSpectrumVisualizerEnabledChanged", ["enabled": $0])
+            .set { (enabled: Bool) in
+                GeneralStorage.shared.isSpectrumVisualizerEnabled = enabled
+                self.sendEvent("onSpectrumVisualizerEnabledChanged", ["enabled": enabled])
             }
 
     // MARK: - Getters
