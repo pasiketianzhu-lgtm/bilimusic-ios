@@ -1,5 +1,6 @@
 {
 	"denyList": {
+		"ios": ["react-native-screens"],
 		"android": [
 			"expo-modules-core",
 			"react-native-reanimated",
