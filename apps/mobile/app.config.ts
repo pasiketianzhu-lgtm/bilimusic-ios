@@ -289,7 +289,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 				projectId: 'b3402d35-3d98-43ee-b228-832de6a5f5ef',
 			},
 		},
-		owner: 'pasike',
+		owner: 'pasikes-team',
 		ios: {
 			bundleIdentifier: 'com.pasike.bilimusic',
 			supportsTablet: true,
