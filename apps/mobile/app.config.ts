@@ -20,6 +20,7 @@ import { version } from './package.json'
 
 const IS_DEV = process.env.APP_VARIANT === 'development'
 const IS_PREVIEW = process.env.APP_VARIANT === 'preview'
+const ENABLE_FIREBASE = process.env.ENABLE_FIREBASE === 'true'
 
 // 使用 git commit 数量作为 versionCode
 const getVersionCode = (): number => {
@@ -106,10 +107,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 				monochromeImage: './assets/images/adaptive-icon.png',
 				backgroundColor: '#ffffff',
 			},
-			googleServicesFile: getGoogleServicesFile(
-				googleServicesJsonPath,
-				googleServicesJsonRealPath,
-			),
+			googleServicesFile: ENABLE_FIREBASE
+				? getGoogleServicesFile(
+						googleServicesJsonPath,
+						googleServicesJsonRealPath,
+					)
+				: undefined,
 			package: getUniqueIdentifier(),
 			versionCode: versionCode,
 			runtimeVersion: { policy: 'appVersion' },
@@ -265,7 +268,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 				savePhotosPermission: '允许 $(PRODUCT_NAME) 保存图片到您的相册',
 				isAccessMediaLocationEnabled: true,
 			}),
-			'@react-native-firebase/app',
+			...(ENABLE_FIREBASE ? ['@react-native-firebase/app'] : []),
 			expoImage(),
 			expoSharing({
 				ios: {
@@ -285,6 +288,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			typedRoutes: true,
 		},
 		extra: {
+			firebaseEnabled: ENABLE_FIREBASE,
 			eas: {
 				projectId: 'b3402d35-3d98-43ee-b228-832de6a5f5ef',
 			},
@@ -299,10 +303,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			runtimeVersion: {
 				policy: 'appVersion',
 			},
-			googleServicesFile: getGoogleServicesFile(
-				googleServicesPlistPath,
-				googleServicesPlistRealPath,
-			),
+			googleServicesFile: ENABLE_FIREBASE
+				? getGoogleServicesFile(
+						googleServicesPlistPath,
+						googleServicesPlistRealPath,
+					)
+				: undefined,
 		},
 		updates: {
 			enabled: false,

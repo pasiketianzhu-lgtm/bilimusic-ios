@@ -5,10 +5,12 @@ import {
 	setAnalyticsCollectionEnabled,
 	setUserProperty,
 } from '@react-native-firebase/analytics'
+import Constants from 'expo-constants'
 
 import log from '@/utils/log'
 
 const logger = log.extend('Service.Analytics')
+const firebaseEnabled = Constants.expoConfig?.extra?.firebaseEnabled === true
 
 type PlayerAction =
 	| 'play'
@@ -22,6 +24,7 @@ type PlaylistSyncAction = 'sync_bilibili' | 'sync_external'
 
 class AnalyticsService {
 	private async safeLogEvent(name: string, params?: Record<string, unknown>) {
+		if (!firebaseEnabled) return
 		try {
 			logEvent(getAnalytics(), name, params)
 			logger.debug(`[Analytics] Logged event: ${name}`, params)
@@ -73,6 +76,7 @@ class AnalyticsService {
 		screenName: string,
 		screenclass: string = screenName,
 	) {
+		if (!firebaseEnabled) return
 		try {
 			await logScreenView(getAnalytics(), {
 				screen_name: screenName,
@@ -87,6 +91,7 @@ class AnalyticsService {
 	}
 
 	public async setUserProperty(name: string, value: string) {
+		if (!firebaseEnabled) return
 		try {
 			await setUserProperty(getAnalytics(), name, value)
 			logger.debug(`[Analytics] Set user property: ${name}=${value}`)
@@ -107,6 +112,7 @@ class AnalyticsService {
 	}
 
 	public async setAnalyticsCollectionEnabled(enabled: boolean) {
+		if (!firebaseEnabled) return
 		await setAnalyticsCollectionEnabled(getAnalytics(), enabled)
 		logger.debug(`[Analytics] Collection enabled: ${enabled}`)
 	}

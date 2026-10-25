@@ -4,6 +4,9 @@
 `ios-unsigned` 为真实 iPhone / iPad 编译，生成未签名的
 `BiliMusic-unsigned.ipa`；云端构建不需要 Apple 签名凭据。
 
+自用构建默认关闭 Firebase 统计及其原生初始化，避免使用仓库中的占位配置。
+以后如需启用，须先配置自己的有效 Firebase 文件，再设置 `ENABLE_FIREBASE=true`。
+
 ## 重新构建
 
 在 `apps/mobile` 目录运行：
