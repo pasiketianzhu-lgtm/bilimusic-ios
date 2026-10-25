@@ -323,13 +323,10 @@ public class ExpoOrpheusModule: Module {
     }
 
     Function("updateSpectrumData") { (destination: TypedArray) in
+        guard destination.kind == .Float32Array, destination.length > 0 else { return }
         let count = destination.length
-        // Get the unsafe pointer to valid memory
-        let pointer = destination.getUnsafeMutablePointer(Float32.self)
-
-        if let ptr = pointer {
-            AudioSpectrumAnalyzer.shared.fillSpectrumData(destination: ptr, count: count)
-        }
+        let pointer = destination.rawPointer.bindMemory(to: Float32.self, capacity: count)
+        AudioSpectrumAnalyzer.shared.fillSpectrumData(destination: pointer, count: count)
     }
 
   }
