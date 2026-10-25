@@ -124,8 +124,12 @@ class AudioSpectrumAnalyzer {
         // vDSP_hvdist(realOnly, 1, imagOnly, 1, &magnitudes, 1, n) triggers "hypot" behavior
         // But wait, vDSP_zvabs takes (real, imag) split complex and returns mangitude.
         
-        var splitComplex = DSPSplitComplex(realp: &realOut, imagp: &imagOut)
-        vDSP_zvabs(&splitComplex, 1, &magnitudes, 1, vDSP_Length(fftSize))
+        realOut.withUnsafeMutableBufferPointer { realBuffer in
+            imagOut.withUnsafeMutableBufferPointer { imagBuffer in
+                var splitComplex = DSPSplitComplex(realp: realBuffer.baseAddress!, imagp: imagBuffer.baseAddress!)
+                vDSP_zvabs(&splitComplex, 1, &magnitudes, 1, vDSP_Length(fftSize))
+            }
+        }
         
         // Normalize
         // Audio samples are -1..1.
@@ -133,7 +137,9 @@ class AudioSpectrumAnalyzer {
         // We usually want 0..1 output. 
         // Applying 1/N scaling.
         var scale = 1.0 / Float(fftSize)
-        vDSP_vsmul(&magnitudes, 1, &scale, &magnitudes, 1, vDSP_Length(fftSize))
+        magnitudes.withUnsafeMutableBufferPointer { buffer in
+            vDSP_vsmul(buffer.baseAddress!, 1, &scale, buffer.baseAddress!, 1, vDSP_Length(fftSize))
+        }
         
         // Save to thread-safe storage
         // We only fail half (Nyquist)
