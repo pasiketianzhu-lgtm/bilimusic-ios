@@ -11,14 +11,16 @@
 			},
 			"env": {
 				"APP_VARIANT": "preview",
-				"VERSION_CODE": "1"
+				"VERSION_CODE": "1",
+				"SENTRY_DISABLE_AUTO_UPLOAD": "true"
 			}
 		},
 		"ios-device": {
 			"distribution": "internal",
 			"env": {
 				"APP_VARIANT": "preview",
-				"VERSION_CODE": "1"
+				"VERSION_CODE": "1",
+				"SENTRY_DISABLE_AUTO_UPLOAD": "true"
 			}
 		},
 		"dev": {
