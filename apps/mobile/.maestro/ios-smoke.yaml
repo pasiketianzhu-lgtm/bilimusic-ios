@@ -1,0 +1,22 @@
+appId: com.pasike.bilimusic
+---
+- launchApp:
+    clearState: true
+- takeScreenshot: ios-launch
+- extendedWaitUntil:
+    visible: '欢迎使用'
+    timeout: 45000
+- tapOn: '继续'
+- assertVisible: '安全提示'
+- tapOn: '继续'
+- tapOn: '游客模式'
+- extendedWaitUntil:
+    visible:
+      id: 'search-bar'
+    timeout: 30000
+- takeScreenshot: ios-search
+- tapOn:
+    id: 'search-bar'
+- inputText: 'Bilibili'
+- assertVisible: 'Bilibili'
+- takeScreenshot: ios-search-input

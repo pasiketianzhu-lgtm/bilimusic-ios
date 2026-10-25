@@ -4,7 +4,6 @@ import { Slider } from '@expo/ui/community/slider'
 import * as Expo from 'expo'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
-import { WavySlider } from 'expo-wavy-slider'
 import { useEffect, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Dialog, Icon, Portal, Text, useTheme } from 'react-native-paper'
@@ -13,6 +12,7 @@ import { useSharedValue } from 'react-native-reanimated'
 import ActivityIndicator from '@/components/common/ActivityIndicator'
 import AnimatedModalOverlay from '@/components/common/AnimatedModalOverlay'
 import Button from '@/components/common/Button'
+import PlatformSlider from '@/components/common/PlatformSlider'
 import UniversalSwitch from '@/components/common/UniversalSwitch'
 import { alert } from '@/components/modals/AlertModal'
 import { useScreenTransitionReady } from '@/hooks/router/useScreenTransitionReady'
@@ -526,7 +526,7 @@ function SliderPreview({
 
 	return (
 		<View style={styles.sliderPreview}>
-			<WavySlider
+			<PlatformSlider
 				style={styles.previewSlider}
 				progress={progress}
 				colors={{

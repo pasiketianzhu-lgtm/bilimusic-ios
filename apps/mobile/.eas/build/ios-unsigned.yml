@@ -1,0 +1,25 @@
+build:
+  name: Build unsigned iPhone and iPad IPA for local signing
+  steps:
+    - eas/checkout
+    - eas/install_node_modules
+    - eas/resolve_build_config
+    - eas/prebuild
+    - run:
+        name: Install iOS dependencies
+        working_directory: ./ios
+        command: pod install
+    - run:
+        name: Compile device app and package unsigned IPA
+        command: bash scripts/build-ios-unsigned.sh
+    - eas/upload_artifact:
+        name: Unsigned iOS app
+        inputs:
+          type: application-archive
+          path: build/BiliMusic-unsigned.ipa
+    - eas/upload_artifact:
+        name: Xcode build log
+        if: ${ always() }
+        inputs:
+          type: build-artifact
+          path: build/unsigned-xcode.log

@@ -4,6 +4,14 @@
 		"appVersionSource": "local"
 	},
 	"build": {
+		"ios-unsigned": {
+			"extends": "ios-device",
+			"withoutCredentials": true,
+			"ios": {
+				"simulator": false,
+				"config": "ios-unsigned.yml"
+			}
+		},
 		"ios-simulator": {
 			"distribution": "internal",
 			"ios": {

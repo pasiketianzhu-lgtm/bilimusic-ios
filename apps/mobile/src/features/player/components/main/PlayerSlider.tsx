@@ -1,6 +1,5 @@
 import { useIsPlaying } from '@bbplayer/orpheus'
 import Color from 'color'
-import { WavySlider } from 'expo-wavy-slider'
 import { useCallback, useEffect, useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import AnimateableText from 'react-native-animateable-text'
@@ -16,6 +15,7 @@ import {
 import { scheduleOnRN } from 'react-native-worklets'
 
 import IconButton from '@/components/common/IconButton'
+import PlatformSlider from '@/components/common/PlatformSlider'
 import { usePlayerChapters } from '@/features/player/hooks/usePlayerChapters'
 import {
 	chapterIndexAt,
@@ -349,7 +349,7 @@ export function PlayerSlider({ onInteraction }: PlayerSliderProps = {}) {
 						}}
 					/>
 				)}
-				<WavySlider
+				<PlatformSlider
 					style={podcast ? styles.podcastSlider : styles.slider}
 					enabled={canSeek}
 					chapterMarkers={markers}
