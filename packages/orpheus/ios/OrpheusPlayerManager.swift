@@ -372,10 +372,12 @@ class OrpheusPlayerManager: NSObject {
     }
     
     private func fetchBilibiliPlayUrl(bvid: String, cid: String, startPosition: Double? = nil) {
-
+        let requestedTrackId = queueManager.getCurrentTrack()?.id
         
         BilibiliApi.shared.getPlayUrl(bvid: bvid, cid: cid) { [weak self] result in
             DispatchQueue.main.async {
+                guard let self = self,
+                      self.queueManager.getCurrentTrack()?.id == requestedTrackId else { return }
                 switch result {
                 case .success(let realUrl):
 
@@ -384,12 +386,30 @@ class OrpheusPlayerManager: NSObject {
                         "Referer": "https://www.bilibili.com/",
                         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                     ]
-                    self?.loadAvPlayerItem(url: realUrl, headers: headers, startPosition: startPosition)
+                    if let remoteURL = URL(string: realUrl),
+                       remoteURL.pathExtension.lowercased() == "m4s",
+                       (self.queueManager.getCurrentTrack()?.duration ?? 0) > 7200 {
+                        LongAudioHLSBridge.shared.prepare(source: remoteURL) { result in
+                            DispatchQueue.main.async { [weak self] in
+                                guard let self = self,
+                                      self.queueManager.getCurrentTrack()?.id == requestedTrackId else { return }
+                                switch result {
+                                case .success(let hlsURL):
+                                    self.loadAvPlayerItem(url: hlsURL.absoluteString, headers: nil, startPosition: startPosition)
+                                case .failure(let error):
+                                    NSLog("[Orpheus] Long-audio HLS preparation failed: %@", error.localizedDescription)
+                                    self.loadAvPlayerItem(url: realUrl, headers: headers, startPosition: startPosition)
+                                }
+                            }
+                        }
+                    } else {
+                        self.loadAvPlayerItem(url: realUrl, headers: headers, startPosition: startPosition)
+                    }
                 case .failure(let error):
 
-                    self?.onPlayerError?(error.localizedDescription)
+                    self.onPlayerError?(error.localizedDescription)
                     // Reset state so UI doesn't stick in loading
-                    self?.onPlaybackStateChanged?(.idle)
+                    self.onPlaybackStateChanged?(.idle)
                 }
             }
         }

@@ -300,6 +300,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			supportsTablet: true,
 			infoPlist: {
 				UIBackgroundModes: ['audio'],
+				NSAppTransportSecurity: { NSAllowsLocalNetworking: true },
 			},
 			runtimeVersion: {
 				policy: 'appVersion',
