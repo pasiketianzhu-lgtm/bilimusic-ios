@@ -391,38 +391,51 @@ class OrpheusPlayerManager: NSObject {
         
 
         
-        let asset: AVURLAsset
+        // Long remote videos must not scan their complete timeline before
+        // playback starts. AVPlayer can refine the duration after buffering.
+        var options: [String: Any] = [
+            AVURLAssetPreferPreciseDurationAndTimingKey: false
+        ]
         if let headers = headers {
-            let options = ["AVURLAssetHTTPHeaderFieldsKey": headers]
-            asset = AVURLAsset(url: nsUrl, options: options)
-        } else {
-            asset = AVURLAsset(url: nsUrl)
+            options["AVURLAssetHTTPHeaderFieldsKey"] = headers
         }
+        let asset = AVURLAsset(url: nsUrl, options: options)
         
         let item = AVPlayerItem(asset: asset)
         
-        // Attach Spectrum Tap
-        if let tap = AudioSpectrumAnalyzer.shared.createTap() {
-            let audioMix = AVMutableAudioMix()
-            // Try to find audio track. Note: This assumes tracks are available synchronously or shortly. 
-            // For robust implementation with remote assets, we might need to wait for "tracks" key.
-            // But doing it synchronously here is the "simple" approach.
-            if let track = asset.tracks(withMediaType: .audio).first {
-                let inputParams = AVMutableAudioMixInputParameters(track: track)
-                inputParams.audioTapProcessor = tap
-                audioMix.inputParameters = [inputParams]
-                item.audioMix = audioMix
-            }
-        }
-
         player.replaceCurrentItem(with: item)
         if let startPos = startPosition, startPos > 0 {
              let time = CMTime(seconds: startPos, preferredTimescale: 1000)
              player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
         }
         player.play()
-        
 
+        // Spectrum analysis is optional. Never block the main thread on the
+        // synchronous tracks(withMediaType:) API for a remote asset.
+        if GeneralStorage.shared.isSpectrumVisualizerEnabled {
+            Task { [weak self, weak item] in
+                do {
+                    let tracks = try await asset.loadTracks(withMediaType: .audio)
+                    DispatchQueue.main.async { [weak self, weak item] in
+                        guard let self = self, let item = item,
+                              self.player.currentItem === item,
+                              GeneralStorage.shared.isSpectrumVisualizerEnabled,
+                              let track = tracks.first,
+                              let tap = AudioSpectrumAnalyzer.shared.createTap() else {
+                            return
+                        }
+                        let inputParams = AVMutableAudioMixInputParameters(track: track)
+                        inputParams.audioTapProcessor = tap
+                        let audioMix = AVMutableAudioMix()
+                        audioMix.inputParameters = [inputParams]
+                        item.audioMix = audioMix
+                    }
+                } catch {
+                    // Visualization failure must not interrupt audio playback.
+                    NSLog("[Orpheus] Spectrum track loading failed: %@", error.localizedDescription)
+                }
+            }
+        }
     }
     
     // MARK: - Notification
