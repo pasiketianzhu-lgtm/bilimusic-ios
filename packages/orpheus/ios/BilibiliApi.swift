@@ -72,10 +72,8 @@ class BilibiliApi {
     // Constants for API parameters
     private let BiliQualityHigh = 80 // 1080P
     private let BiliFnvalDash = 16 
-    private let FnvalMp4 = 1
     private let FnverDefault = 0
     private let FourKEnabled = 1
-    private let PlatformHtml5 = "html5"
 
     private var imgKey: String?
     private var subKey: String?
@@ -192,11 +190,11 @@ class BilibiliApi {
             "bvid": bvid,
             "cid": cid,
             "qn": BiliQualityHigh,
-            // fnval=1 requests MP4/FLV durl list which is better for AVPlayer
-            "fnval": FnvalMp4, 
+            // Request separate audio instead of a multi-gigabyte video MP4.
+            // Do not force platform=html5, which can suppress DASH responses.
+            "fnval": BiliFnvalDash,
             "fnver": FnverDefault,
-            "fourk": FourKEnabled,
-            "platform": PlatformHtml5
+            "fourk": FourKEnabled
         ]
         
         let signedParams = WbiUtil.sign(params: params, imgKey: imgKey, subKey: subKey)
@@ -236,7 +234,10 @@ class BilibiliApi {
                 let playUrlResponse = try JSONDecoder().decode(BilibiliPlayUrlResponse.self, from: data)
                 
                 if playUrlResponse.code != 0 {
-                     completion(.failure(BilibiliError.requestFailed))
+                     completion(.failure(BilibiliError.apiError(
+                        code: playUrlResponse.code,
+                        message: playUrlResponse.message ?? "Unknown error"
+                     )))
                      return
                 }
                 
