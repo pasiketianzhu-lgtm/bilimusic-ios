@@ -21,6 +21,7 @@ import type {
 	UpdatePlaylistPayload,
 } from '@/types/services/playlist'
 
+import { uniqueTrackIds } from './playlistRules'
 import type { TrackService } from './trackService'
 import { trackService as trackServiceInstance } from './trackService'
 
@@ -571,7 +572,7 @@ export class PlaylistService {
 				let prevKey: string | null = maxKeyResult[0].maxKey ?? null
 
 				// 构造批量插入的行，每条用 generateKeyBetween(prevKey, null) 追加到末端
-				const values = trackIds.map((tid) => {
+				const values = uniqueTrackIds(trackIds).map((tid) => {
 					const sortKey = generateKeyBetween(prevKey, null)
 					prevKey = sortKey
 					return {
