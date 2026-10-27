@@ -6,6 +6,7 @@ class OrpheusPlayerManager: NSObject {
     static let shared = OrpheusPlayerManager()
     
     private let player: AVPlayer
+    private weak var pendingInitialPlaybackItem: AVPlayerItem?
     private let queueManager = OrpheusQueueManager()
 
     
@@ -62,6 +63,15 @@ class OrpheusPlayerManager: NSObject {
             notifyPlaybackState()
         } else if keyPath == "currentItem.status" {
             let status = player.currentItem?.status ?? .unknown
+
+            if status == .readyToPlay,
+               let item = pendingInitialPlaybackItem,
+               player.currentItem === item {
+                pendingInitialPlaybackItem = nil
+                // Bypass the initial whole-program buffering estimate only.
+                // Automatic waiting remains enabled for subsequent stalls.
+                player.playImmediately(atRate: 1.0)
+            }
 
             if status == .failed {
                 let errorMsg = player.currentItem?.error?.localizedDescription ?? "unknown error"
@@ -178,6 +188,7 @@ class OrpheusPlayerManager: NSObject {
     }
     
     private func stopPlayback() {
+        pendingInitialPlaybackItem = nil
         player.pause()
         player.replaceCurrentItem(with: nil)
         onPlaybackStateChanged?(.idle)
@@ -240,6 +251,7 @@ class OrpheusPlayerManager: NSObject {
     }
     
     func pause() {
+        pendingInitialPlaybackItem = nil
         player.pause()
     }
     
@@ -409,6 +421,7 @@ class OrpheusPlayerManager: NSObject {
         let asset = AVURLAsset(url: nsUrl, options: options)
         
         let item = AVPlayerItem(asset: asset)
+        pendingInitialPlaybackItem = item
         
         player.replaceCurrentItem(with: item)
         if let startPos = startPosition, startPos > 0 {
@@ -459,6 +472,11 @@ class OrpheusPlayerManager: NSObject {
     }
     
     private func notifyPlaybackState() {
+        NSLog("[Orpheus] status=%ld item=%ld waiting=%@ buffered=%.1f",
+              player.timeControlStatus.rawValue,
+              player.currentItem?.status.rawValue ?? -1,
+              player.reasonForWaitingToPlay?.rawValue ?? "none",
+              player.currentItem?.loadedTimeRanges.last?.timeRangeValue.end.seconds ?? 0)
         var state: PlaybackState = .idle
         switch player.timeControlStatus {
         case .paused:
