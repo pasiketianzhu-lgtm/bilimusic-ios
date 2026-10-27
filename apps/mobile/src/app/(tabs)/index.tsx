@@ -14,12 +14,13 @@ import {
 	KeyboardAvoidingView,
 	Platform,
 	Pressable,
+	ScrollView,
 	StyleSheet,
 	ToastAndroid,
 	View,
 } from 'react-native'
 import { useMMKVObject } from 'react-native-mmkv'
-import { Searchbar, Text, useTheme } from 'react-native-paper'
+import { List, Searchbar, Text, useTheme } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import ActivityIndicator from '@/components/common/ActivityIndicator'
@@ -29,10 +30,12 @@ import SearchHistory, {
 	type SearchHistoryItem,
 } from '@/features/search/SearchHistory'
 import SearchSuggestions from '@/features/search/SearchSuggestions'
+import { selectHomePlaylists } from '@/features/home/homePreview'
 import useCurrentTrack from '@/hooks/player/useCurrentTrack'
 import { useIncomingShare } from '@/hooks/app/useIncomingShare'
 import useSkinForegroundColor from '@/hooks/theme/useSkinForegroundColor'
 import { useNowPlayingBar } from '@/hooks/ui/useNowPlayingBar'
+import { usePlaylistLists } from '@/hooks/queries/db/playlist'
 import { markPerfInteractive } from '@/lib/performance'
 import { toastAndLogError } from '@/utils/error-handling'
 import {
@@ -93,6 +96,8 @@ export default function SearchPage() {
 	const { resolvedSharedPayloads, isResolving, clearSharedPayloads } =
 		useIncomingShare()
 	const { markInteractive } = useObserve()
+	const { data: playlists = [] } = usePlaylistLists()
+	const homePlaylists = selectHomePlaylists(playlists, 6)
 	useEffect(() => {
 		markInteractive()
 		void markPerfInteractive()
@@ -295,6 +300,54 @@ export default function SearchPage() {
 					setContentHeight(nativeEvent.layout.height)
 				}
 			>
+				{!searchFocused && searchQuery.length === 0 && (
+					<ScrollView
+						contentContainerStyle={styles.homePreview}
+						showsVerticalScrollIndicator={false}
+					>
+						<View style={styles.sectionHeader}>
+							<Text variant='titleMedium' style={styles.sectionTitle}>
+								我的歌单
+							</Text>
+							<Pressable onPress={() => router.navigate('/library/0')}>
+								<Text style={{ color: colors.primary }}>查看全部</Text>
+							</Pressable>
+						</View>
+						{homePlaylists.length === 0 ? (
+							<List.Item
+								title='创建你的第一个歌单'
+								description='把喜欢的 B 站音乐整理到一起'
+								left={(props) => <List.Icon {...props} icon='playlist-plus' />}
+								onPress={() => router.navigate('/library/0')}
+							/>
+						) : (
+							homePlaylists.map((playlist) => (
+								<List.Item
+									key={playlist.id}
+									title={playlist.title}
+									description={`${playlist.itemCount} 首歌曲`}
+									left={(props) => (
+										<List.Icon
+											{...props}
+											icon={playlist.isPinned ? 'pin' : 'playlist-music'}
+										/>
+									)}
+									right={(props) => <List.Icon {...props} icon='chevron-right' />}
+									onPress={() =>
+										router.navigate(`/playlist/local/${playlist.id}`)
+									}
+								/>
+							))
+						)}
+						<List.Item
+							title='最近播放'
+							description='继续上次的音乐'
+							left={(props) => <List.Icon {...props} icon='history' />}
+							right={(props) => <List.Icon {...props} icon='chevron-right' />}
+							onPress={() => router.navigate('/playlist/recently')}
+						/>
+					</ScrollView>
+				)}
 				{isResolving ? (
 					<ActivityIndicator style={styles.resolving} />
 				) : (
@@ -332,6 +385,15 @@ const styles = StyleSheet.create({
 	searchbarContainer: { paddingHorizontal: 16, paddingBottom: 16 },
 	searchbar: { borderRadius: 9999 },
 	content: { flex: 1, paddingHorizontal: 16 },
+	homePreview: { paddingBottom: 24 },
+	sectionHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingVertical: 8,
+	},
+	sectionTitle: { fontWeight: 'bold' },
 	suggestions: { position: 'absolute', top: 0, left: 16, right: 16, zIndex: 1 },
 	resolving: { flex: 1 },
 })
+
