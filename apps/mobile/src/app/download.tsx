@@ -77,6 +77,7 @@ export function DownloadPage({ embedded = false }: { embedded?: boolean }) {
 			<DownloadHeader
 				taskCount={tasks.length}
 				retryableCount={tasks.filter(canRetryDownloadTask).length}
+				onOpenDownloaded={() => router.navigate('/downloaded')}
 				onRetryAll={async () => {
 					const promises = tasks
 						.filter(canRetryDownloadTask)

@@ -32,6 +32,7 @@ import Lyrics from '@/features/player/components/lyrics/PlayerLyrics'
 import { PlayerChaptersSheet } from '@/features/player/components/main/PlayerChaptersSheet'
 import { PlayerHeader } from '@/features/player/components/main/PlayerHeader'
 import PlayerMainTab from '@/features/player/components/main/PlayerMainTab'
+import PlayerQueuePreview from '@/features/player/components/main/PlayerQueuePreview'
 import { PlayerFunctionalMenu } from '@/features/player/components/menu/PlayerFunctionalMenu'
 import { FluidBackground } from '@/features/player/components/visuals/FluidBackground'
 import useCurrentTrack from '@/hooks/player/useCurrentTrack'
@@ -94,6 +95,7 @@ export default function PlayerPage() {
 		onError: () => void 0,
 	})
 	const { width, height } = useWindowDimensions()
+	const isTabletLandscape = width >= 900 && width > height
 	const colorScheme = useColorScheme()
 	// 旧版 md3 / streamer 等存量值也回落到普通渐变。
 	const isFluidBackground = useAppStore(
@@ -335,6 +337,17 @@ export default function PlayerPage() {
 							/>
 						</Computed>
 						<Computed>
+							{isTabletLandscape ? (
+								<View style={styles.landscapePlayer}>
+									<PlayerQueuePreview />
+									<View style={styles.landscapeMain}>
+										<PlayerMainTab jumpTo={jumpTo} imageRef={coverRef} onPresent={() => {}} />
+									</View>
+									<View style={styles.landscapeLyrics}>
+										<Lyrics currentIndex={index} onPressBackground={() => jumpTo('main')} />
+									</View>
+								</View>
+							) : (
 							<AnimatedPagerView
 								key={
 									playbackContextStore$.context.mode.get() === 'podcast'
@@ -376,6 +389,7 @@ export default function PlayerPage() {
 											]),
 								]}
 							</AnimatedPagerView>
+							)}
 						</Computed>
 					</View>
 
@@ -403,4 +417,13 @@ const styles = StyleSheet.create({
 	tabView: {
 		flex: 1,
 	},
+	landscapePlayer: {
+		flex: 1,
+		flexDirection: 'row',
+		gap: 16,
+		paddingHorizontal: 16,
+		paddingBottom: 16,
+	},
+	landscapeMain: { flex: 1.4, minWidth: 320 },
+	landscapeLyrics: { flex: 1, minWidth: 260 },
 })

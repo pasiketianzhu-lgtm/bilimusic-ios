@@ -8,6 +8,7 @@ interface DownloadHeaderProps {
 	retryableCount: number
 	onRetryAll: () => void
 	onClearAll: () => void
+	onOpenDownloaded?: () => void
 }
 
 /**
@@ -18,6 +19,7 @@ export default function DownloadHeader({
 	retryableCount,
 	onRetryAll,
 	onClearAll,
+	onOpenDownloaded,
 }: DownloadHeaderProps) {
 	const { colors } = useTheme()
 
@@ -32,6 +34,11 @@ export default function DownloadHeader({
 				总共 {taskCount} 个任务
 			</Text>
 			<View style={styles.buttonContainer}>
+				{onOpenDownloaded && (
+					<Button mode='text' onPress={onOpenDownloaded}>
+						已下载
+					</Button>
+				)}
 				<Button
 					mode='outlined'
 					onPress={onRetryAll}
