@@ -1,6 +1,5 @@
 import { useObserve } from 'expo-observe'
 import { useFocusEffect, useRouter } from 'expo-router'
-import { useIncomingShare } from 'expo-sharing'
 import {
 	type ComponentRef,
 	useCallback,
@@ -31,6 +30,7 @@ import SearchHistory, {
 } from '@/features/search/SearchHistory'
 import SearchSuggestions from '@/features/search/SearchSuggestions'
 import useCurrentTrack from '@/hooks/player/useCurrentTrack'
+import { useIncomingShare } from '@/hooks/app/useIncomingShare'
 import useSkinForegroundColor from '@/hooks/theme/useSkinForegroundColor'
 import { useNowPlayingBar } from '@/hooks/ui/useNowPlayingBar'
 import { markPerfInteractive } from '@/lib/performance'
