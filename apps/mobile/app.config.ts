@@ -245,6 +245,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 				assets: ['./assets/images/media3_notification_small_icon.png'],
 			}),
 			expoFont(),
+			'@react-native-vector-icons/material-design-icons',
 			[
 				'react-native-bottom-tabs',
 				{
