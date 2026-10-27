@@ -4,7 +4,9 @@ import type { MMKV } from 'react-native-mmkv'
 import { useMMKVBoolean } from 'react-native-mmkv'
 
 import { alert } from '@/components/modals/AlertModal'
+import { useShuffleMode } from '@/hooks/queries/orpheus'
 import { playlistService } from '@/lib/services/playlistService'
+import { defaultRandomParticipation } from '@/lib/services/playlistRules'
 import type { Track } from '@/types/core/media'
 import { toastAndLogError } from '@/utils/error-handling'
 import { storage } from '@/utils/mmkv'
@@ -19,6 +21,7 @@ export function useLocalPlaylistPlayer(
 	isOffline?: boolean,
 	playableOfflineKeys?: Set<string>,
 ) {
+	const { data: shuffleMode = false } = useShuffleMode()
 	const [ignoreAlertReplacePlaylist, setIgnoreAlertReplacePlaylist] =
 		useMMKVBoolean('ignore_alert_replace_playlist', storage as MMKV)
 
@@ -32,6 +35,13 @@ export function useLocalPlaylistPlayer(
 			let tracks = tracksResult.value.filter((item) =>
 				item.source === 'bilibili' ? item.bilibiliMetadata.videoIsValid : true,
 			)
+			if (shuffleMode) {
+				const eligible = tracks.filter((track) =>
+					defaultRandomParticipation(track.duration),
+				)
+				// A playlist containing only long-form items remains playable.
+				if (eligible.length > 0) tracks = eligible
+			}
 
 			if (isOffline) {
 				const originalLength = tracks.length
@@ -93,7 +103,7 @@ export function useLocalPlaylistPlayer(
 				toastAndLogError('播放全部失败', error, SCOPE)
 			}
 		},
-		[playlistId, isOffline],
+		[playlistId, isOffline, shuffleMode],
 	)
 
 	const handleTrackPress = useCallback(

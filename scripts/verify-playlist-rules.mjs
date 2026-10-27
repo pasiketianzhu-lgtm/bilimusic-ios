@@ -14,3 +14,5 @@ assert.equal(defaultRandomParticipation(1801), false)
 assert.equal(defaultRandomParticipation(1800), true)
 assert.deepEqual(uniqueTrackIds([3, 3, 1, 2, 1]), [3, 1, 2])
 console.log('playlist rules contract passed')
+
+assert.deepEqual(defaultRandomParticipation(7200), false)
