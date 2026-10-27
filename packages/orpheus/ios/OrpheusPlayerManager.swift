@@ -399,6 +399,13 @@ class OrpheusPlayerManager: NSObject {
         if let headers = headers {
             options["AVURLAssetHTTPHeaderFieldsKey"] = headers
         }
+        // Bilibili serves MP4 audio as .m4s + application/octet-stream. Without
+        // an explicit type AVFoundation rejects it before decoding (-11828).
+        if nsUrl.pathExtension.lowercased() == "m4s" {
+            if #available(iOS 17.0, tvOS 17.0, *) {
+                options[AVURLAssetOverrideMIMETypeKey] = "audio/mp4"
+            }
+        }
         let asset = AVURLAsset(url: nsUrl, options: options)
         
         let item = AVPlayerItem(asset: asset)
