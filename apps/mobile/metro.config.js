@@ -29,6 +29,9 @@ const withWorklets = getBundleModeMetroConfig(withReanimated)
 
 const withBoost = withBoostConfig(withWorklets, {
 	logLevel: 'debug',
+	// Boost 2.0.2 emits calls to the react-native module object when converting
+	// repeated Animated.Value initializers in react-native-screens.
+	optimizations: { 'animated-value-initialization': 'off' },
 	ignores: [
 		'node_modules/**',
 		'../../node_modules/**',

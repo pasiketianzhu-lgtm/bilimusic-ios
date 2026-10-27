@@ -121,9 +121,11 @@ function runAppInit() {
 			void Orpheus.setDownloadMaxParallelTasks(
 				settings.downloadMaxParallelTasks,
 			)
-			void Orpheus.setAllowSimultaneousPlayback(
-				settings.allowSimultaneousPlayback,
-			)
+			if (Platform.OS === 'android') {
+				void Orpheus.setAllowSimultaneousPlayback(
+					settings.allowSimultaneousPlayback,
+				)
+			}
 			const cookie = useAppStoreObj.getState().bilibiliCookie
 			if (cookie) {
 				logger.debug('初始化 orpheus bilibili cookie')

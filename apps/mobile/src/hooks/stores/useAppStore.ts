@@ -2,6 +2,7 @@ import { Orpheus } from '@bbplayer/orpheus'
 import * as parseCookie from 'cookie'
 import * as Expo from 'expo'
 import { err, ok, type Result } from 'neverthrow'
+import { Platform } from 'react-native'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
@@ -226,7 +227,10 @@ export const useAppStore = create<AppState>()(
 							updates.downloadMaxParallelTasks,
 						)
 					}
-					if (updates.allowSimultaneousPlayback !== undefined) {
+					if (
+						Platform.OS === 'android' &&
+						updates.allowSimultaneousPlayback !== undefined
+					) {
 						void Orpheus.setAllowSimultaneousPlayback(
 							updates.allowSimultaneousPlayback,
 						)
