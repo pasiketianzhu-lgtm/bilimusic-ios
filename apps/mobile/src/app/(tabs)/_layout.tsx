@@ -30,6 +30,7 @@ interface nonNullableIcon {
 
 const searchIcon = Icon.getImageSourceSync('magnify', 24) as nonNullableIcon
 const libraryIcon = Icon.getImageSourceSync('bookshelf', 24) as nonNullableIcon
+const downloadIcon = Icon.getImageSourceSync('download-box-outline', 24) as nonNullableIcon
 const profileIcon = Icon.getImageSourceSync('account', 24) as nonNullableIcon
 
 export default function TabLayout() {
@@ -61,7 +62,7 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name='index'
 				options={{
-					title: '搜索',
+					title: '首页',
 					tabBarIcon: ({ focused }) => {
 						// 旧皮肤仍使用 home 作为第一个标签的图标槽位。
 						const icon = focused
@@ -69,21 +70,30 @@ export default function TabLayout() {
 							: skinIcons?.home.default
 						return icon ? { uri: icon, scale: 1 } : searchIcon
 					},
-					tabBarLabel: '搜索',
+					tabBarLabel: '首页',
 					lazy: true,
 				}}
 			/>
 			<Tabs.Screen
 				name='library/[tab]'
 				options={{
-					title: '音乐库',
+					title: '歌单',
 					tabBarIcon: ({ focused }) => {
 						const icon = focused
 							? skinIcons?.library.selected
 							: skinIcons?.library.default
 						return icon ? { uri: icon, scale: 1 } : libraryIcon
 					},
-					tabBarLabel: '音乐库',
+					tabBarLabel: '歌单',
+					lazy: true,
+				}}
+			/>
+			<Tabs.Screen
+				name='download'
+				options={{
+					title: '下载',
+					tabBarIcon: () => downloadIcon,
+					tabBarLabel: '下载',
 					lazy: true,
 				}}
 			/>

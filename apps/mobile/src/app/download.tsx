@@ -21,7 +21,7 @@ const renderItem = ({ item }: { item: DownloadTask }) => {
 	return <DownloadTaskItem initTask={item} />
 }
 
-export default function DownloadPage() {
+export function DownloadPage({ embedded = false }: { embedded?: boolean }) {
 	const { colors } = useTheme()
 	const router = useRouter()
 	const insets = useSafeAreaInsets()
@@ -30,7 +30,11 @@ export default function DownloadPage() {
 
 	const haveTrack = useCurrentTrack()
 
-	const header = (
+	const header = embedded ? (
+		<Appbar.Header elevated>
+			<Appbar.Content title='下载' />
+		</Appbar.Header>
+	) : (
 		<Appbar.Header elevated>
 			<Appbar.BackAction onPress={() => router.back()} />
 			<Appbar.Content title='下载任务' />
@@ -113,6 +117,8 @@ export default function DownloadPage() {
 		</View>
 	)
 }
+
+export default DownloadPage
 
 const styles = StyleSheet.create({
 	container: {
