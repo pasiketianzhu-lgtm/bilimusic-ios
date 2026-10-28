@@ -20,7 +20,7 @@ class GeneralStorage {
     // MARK: - Preferences
     
     var isRestoreEnabled: Bool {
-        get { return mmkv?.bool(forKey: KEY_RESTORE_ENABLED, defaultValue: false) ?? false }
+        get { return mmkv?.bool(forKey: KEY_RESTORE_ENABLED, defaultValue: true) ?? true }
         set { mmkv?.set(newValue, forKey: KEY_RESTORE_ENABLED) }
     }
     
@@ -91,5 +91,35 @@ class GeneralStorage {
     
     func getSavedShuffleMode() -> Bool {
         return mmkv?.bool(forKey: KEY_SAVED_SHUFFLE_MODE, defaultValue: false) ?? false
+    }
+
+    func participatesInRandom(_ track: Track) -> Bool {
+        let override = mmkv?.int32(forKey: "track_random::\(track.id)", defaultValue: 0) ?? 0
+        return override == 0 ? (track.duration ?? 0) <= 1800 : override == 1
+    }
+
+    var downloadQuality: Int {
+        get { return Int(mmkv?.int32(forKey: "download_audio_quality", defaultValue: 0) ?? 0) }
+        set { mmkv?.set(Int32(newValue), forKey: "download_audio_quality") }
+    }
+
+    func remembersPosition(_ track: Track) -> Bool {
+        let override = mmkv?.int32(forKey: "track_resume::\(track.id)", defaultValue: 0) ?? 0
+        return override == 0 ? (track.duration ?? 0) > 1800 : override == 1
+    }
+
+    func setTrackBehavior(id: String, random: Bool, resume: Bool) {
+        mmkv?.set(Int32(random ? 1 : 2), forKey: "track_random::\(id)")
+        mmkv?.set(Int32(resume ? 1 : 2), forKey: "track_resume::\(id)")
+    }
+
+    func saveTrackPosition(_ track: Track, seconds: Double) {
+        guard seconds.isFinite, seconds >= 0 else { return }
+        let ended = (track.duration ?? 0) > 0 && seconds >= (track.duration ?? 0) - 2
+        mmkv?.set(Int64(ended ? 0 : seconds * 1000), forKey: "track_position::\(track.id)")
+    }
+
+    func trackPosition(_ track: Track) -> Double {
+        return Double(mmkv?.int64(forKey: "track_position::\(track.id)", defaultValue: 0) ?? 0) / 1000
     }
 }

@@ -14,6 +14,7 @@ import { analyticsService } from '@/lib/services/analyticsService'
 import { toastAndLogError } from '@/utils/error-handling'
 import * as Haptics from '@/utils/haptics'
 
+import LikeTrackButton from './LikeTrackButton'
 import {
 	MainPlaybackControls,
 	SecondaryPlaybackControls,
@@ -31,6 +32,7 @@ export function MusicControls({ onOpenQueue }: { onOpenQueue: () => void }) {
 				<MainPlaybackControls />
 			</View>
 			<SecondaryPlaybackControls>
+				{currentTrack && <LikeTrackButton trackId={currentTrack.id} />}
 				<IconButton
 					icon={shuffleMode ? 'shuffle-variant' : 'shuffle-disabled'}
 					size={24}

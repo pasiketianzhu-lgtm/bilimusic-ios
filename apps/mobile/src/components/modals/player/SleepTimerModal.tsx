@@ -1,6 +1,6 @@
 import { Orpheus } from '@bbplayer/orpheus'
 import { useEffect, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 import { Dialog, Text, TextInput } from 'react-native-paper'
 
 import Button from '@/components/common/Button'
@@ -20,7 +20,7 @@ const SleepTimerModal = () => {
 	const [customMinutes, setCustomMinutes] = useState('')
 
 	useEffect(() => {
-		if (sleepTimerEndAt) {
+		if (sleepTimerEndAt && sleepTimerEndAt > 0) {
 			const interval = setInterval(() => {
 				const remaining = Math.round((sleepTimerEndAt - Date.now()) / 1000)
 				if (remaining > 0) {
@@ -63,6 +63,12 @@ const SleepTimerModal = () => {
 		<>
 			<Dialog.Title>定时关闭</Dialog.Title>
 			<Dialog.Content>
+				{sleepTimerEndAt === -1 && <Text>当前条目播放完后停止</Text>}
+				{Platform.OS === 'ios' && (
+					<Button onPress={() => handleSetTimer(-1 / 60000)}>
+						当前条目播完停止
+					</Button>
+				)}
 				{remainingTime ? (
 					<View style={styles.remainingTimeContainer}>
 						<Text variant='headlineMedium'>

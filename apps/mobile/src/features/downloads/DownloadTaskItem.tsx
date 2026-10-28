@@ -1,7 +1,7 @@
 import { DownloadState, Orpheus, type DownloadTask } from '@bbplayer/orpheus'
 import { useRecyclingState } from '@legendapp/list/react-native'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 import { Icon, Surface, Text, useTheme } from 'react-native-paper'
 import Animated, {
 	useAnimatedStyle,
@@ -26,6 +26,9 @@ const DownloadTaskItem = memo(function DownloadTaskItem({
 }) {
 	const { colors } = useTheme()
 	const [task, setTask] = useRecyclingState<DownloadTask>(initTask)
+	useEffect(() => {
+		setTask(initTask)
+	}, [initTask, setTask])
 	const sharedProgress = useSharedValue(0)
 	const progressBackgroundWidth = useSharedValue(0)
 	const containerRef = useRef<View>(null)
@@ -36,9 +39,18 @@ const DownloadTaskItem = memo(function DownloadTaskItem({
 	useEffect(() => {
 		const handler = (e: ProgressEvent['progress:uniqueKey']) => {
 			sharedProgress.value = e.percent
-			if (e.state !== task.state) {
-				setTask((t) => ({ ...t, state: e.state }))
-			}
+			setTask((t) =>
+				e.state !== t.state ||
+				Math.floor(e.percent * 100) !== Math.floor(t.percentDownloaded * 100)
+					? {
+							...t,
+							state: e.state,
+							percentDownloaded: e.percent,
+							bytesDownloaded: e.current,
+							contentLength: e.total,
+						}
+					: t,
+			)
 		}
 		eventListner.on(`progress:${task.id}`, handler)
 
@@ -56,8 +68,8 @@ const DownloadTaskItem = memo(function DownloadTaskItem({
 
 	useEffect(() => {
 		// 只清除当前任务的进度，而不清除 progressBackgroundWidth
-		sharedProgress.set(0)
-	}, [sharedProgress, task.id])
+		sharedProgress.set(initTask.percentDownloaded)
+	}, [sharedProgress, task.id, initTask.percentDownloaded])
 
 	const progressBackgroundAnimatedStyle = useAnimatedStyle(() => {
 		return {
@@ -140,6 +152,18 @@ const DownloadTaskItem = memo(function DownloadTaskItem({
 		return (
 			<>
 				<View style={styles.iconsContainer}>
+					{Platform.OS === 'ios' &&
+						task.state === DownloadState.DOWNLOADING && (
+							<IconButton
+								icon='pause'
+								accessibilityLabel='暂停下载'
+								onPress={() => {
+									void Orpheus.pauseDownload(task.id).catch((error: unknown) =>
+										toastAndLogError('暂停下载失败', error, 'Downloads'),
+									)
+								}}
+							/>
+						)}
 					{retryable && (
 						<IconButton
 							icon='reload'
@@ -202,6 +226,12 @@ const DownloadTaskItem = memo(function DownloadTaskItem({
 								style={{ color: colors.onSurfaceVariant }}
 							>
 								{getStatusText()}
+								{task.state === DownloadState.DOWNLOADING
+									? ` ${Math.floor(task.percentDownloaded * 100)}%`
+									: ''}
+								{task.contentLength > 0
+									? ` · ${(task.bytesDownloaded / 1048576).toFixed(1)} / ${(task.contentLength / 1048576).toFixed(1)} MB`
+									: ''}
 							</Text>
 						</View>
 					</View>

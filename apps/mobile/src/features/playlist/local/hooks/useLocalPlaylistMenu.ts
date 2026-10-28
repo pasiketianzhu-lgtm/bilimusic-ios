@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
 
 import { alert } from '@/components/modals/AlertModal'
+import { requestDownloads } from '@/features/downloads/requestDownloads'
 import type { TrackMenuItem } from '@/features/playlist/local/components/LocalPlaylistItem'
 import { queryClient } from '@/lib/config/queryClient'
 import type { Playlist, Track } from '@/types/core/media'
@@ -167,14 +168,20 @@ export function useLocalPlaylistMenu({
 								artwork = item.coverUrl
 							}
 
-							await Orpheus.downloadTrack({
-								id: item.uniqueKey,
-								url: url,
-								title: item.title,
-								artist: artistName,
-								artwork: artwork,
-								duration: item.duration,
-							})
+							const queued = await requestDownloads([
+								{
+									id: item.uniqueKey,
+									url: url,
+									title: item.title,
+									artist: artistName,
+									artwork: artwork,
+									duration: item.duration,
+								},
+							])
+							if (!queued) {
+								toast.info('已下载或已加入下载队列')
+								return
+							}
 
 							toast.success('已开始下载')
 						} catch (error) {

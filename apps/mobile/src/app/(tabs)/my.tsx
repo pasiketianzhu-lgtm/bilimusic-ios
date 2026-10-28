@@ -1,11 +1,8 @@
-import type { TrueSheet } from '@lodev09/react-native-true-sheet'
 import dayjs from 'dayjs'
-import { eq } from 'drizzle-orm'
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite'
 import { Image } from 'expo-image'
 import { useObserve } from 'expo-observe'
 import { useRouter } from 'expo-router'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Touchable } from 'react-native-gesture-handler'
 import { Icon, List, Text, useTheme } from 'react-native-paper'
@@ -14,7 +11,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import IconButton from '@/components/common/IconButton'
 import SettingsSectionTitle from '@/components/common/SettingsSectionTitle'
 import SkinAppbarBackground from '@/components/navigation/SkinAppbarBackground'
-import { SyncFailuresSheet } from '@/features/playlist/local/components/SyncFailuresSheet'
 import ListeningRecordSection from '@/features/profile/ListeningRecordSection'
 import useCurrentTrack from '@/hooks/player/useCurrentTrack'
 import { usePersonalInformation } from '@/hooks/queries/bilibili/user'
@@ -24,8 +20,6 @@ import useSkinStore from '@/hooks/stores/useSkinStore'
 import useActiveSkin from '@/hooks/theme/useActiveSkin'
 import useSkinForegroundColor from '@/hooks/theme/useSkinForegroundColor'
 import { useNowPlayingBar } from '@/hooks/ui/useNowPlayingBar'
-import db from '@/lib/db/db'
-import * as schema from '@/lib/db/schema'
 import { markPerfInteractive } from '@/lib/performance'
 
 export default function MyPage() {
@@ -36,20 +30,10 @@ export default function MyPage() {
 	const haveTrack = useCurrentTrack()
 	const hideStarPrompt = useAppStore((state) => state.settings.hideStarPrompt)
 	const openModal = useModalStore((state) => state.open)
-	const syncFailuresSheetRef = useRef<TrueSheet>(null)
-	const { data: syncFailures } = useLiveQuery(
-		db
-			.select({ id: schema.playlistSyncQueue.id })
-			.from(schema.playlistSyncQueue)
-			.where(eq(schema.playlistSyncQueue.status, 'failed'))
-			.limit(1),
-	)
 
 	const headerForegroundColor = useSkinForegroundColor()
 	const hasCookie = useAppStore((state) => state.hasBilibiliCookie())
 	const cachedProfile = useAppStore((state) => state.bilibiliUserInfo)
-	const account = useAppStore((state) => state.bbplayerAccount)
-	const token = useAppStore((state) => state.bbplayerToken)
 	const { data: personalInfo } = usePersonalInformation()
 	const profile = hasCookie ? (personalInfo ?? cachedProfile) : undefined
 	const activeSkin = useActiveSkin()
@@ -151,35 +135,6 @@ export default function MyPage() {
 						</View>
 						{chevron()}
 					</Touchable>
-					<Touchable
-						accessibilityRole='button'
-						accessibilityLabel='BBPlayer 账号'
-						style={[
-							styles.accountBar,
-							{ backgroundColor: colors.surfaceVariant },
-						]}
-						onPress={() => router.navigate('/settings/account')}
-					>
-						<Icon
-							source='link-variant'
-							size={20}
-							color={colors.onSurfaceVariant}
-						/>
-						<Text
-							variant='titleSmall'
-							style={{ color: colors.onSurfaceVariant }}
-						>
-							BBPlayer 账号
-						</Text>
-						<Text
-							variant='bodySmall'
-							style={[styles.accountStatus, { color: colors.onSurfaceVariant }]}
-							numberOfLines={1}
-						>
-							{token ? (account?.name ?? '已登录') : '未登录'}
-						</Text>
-						{chevron()}
-					</Touchable>
 				</View>
 				<ListeningRecordSection />
 				<SettingsSectionTitle
@@ -187,20 +142,6 @@ export default function MyPage() {
 					first
 				/>
 				<View>
-					{syncFailures.length > 0 && (
-						<List.Item
-							title='歌单同步失败'
-							left={(props) => (
-								<List.Icon
-									{...props}
-									icon='alert-circle-outline'
-									color={colors.error}
-								/>
-							)}
-							right={chevron}
-							onPress={() => void syncFailuresSheetRef.current?.present()}
-						/>
-					)}
 					<List.Item
 						title='最近常听'
 						left={(props) => (
@@ -268,7 +209,6 @@ export default function MyPage() {
 					/>
 				</View>
 			</ScrollView>
-			<SyncFailuresSheet ref={syncFailuresSheetRef} />
 		</View>
 	)
 }

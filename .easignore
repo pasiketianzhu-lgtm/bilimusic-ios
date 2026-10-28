@@ -48,6 +48,7 @@ temp-builds
 
 .zed
 .idea
+.superpowers/
 
 # Keep local Firebase credentials out of EAS source archives.
 **/google-services.real.json

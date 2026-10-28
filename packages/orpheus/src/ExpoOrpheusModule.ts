@@ -74,6 +74,7 @@ export interface AndroidPlaybackErrorEvent {
 export interface IosPlaybackErrorEvent {
 	platform: 'ios'
 	error: string
+	trackId?: string
 }
 
 export type PlaybackErrorEvent =
@@ -328,6 +329,15 @@ declare class NativeOrpheusModule extends NativeModule<OrpheusEvents> {
 	multiDownload(tracks: Track[]): Promise<void>
 	/** 清除已停止下载的 stop reason，让 Media3 可以继续下载。 */
 	resumeDownload(id: string): Promise<void>
+	/** Suspend an active iOS download without deleting its completed bytes. */
+	pauseDownload(id: string): Promise<void>
+	getDownloadQuality(): Promise<number>
+	setDownloadQuality(quality: number): Promise<void>
+	getTrackBehavior(
+		id: string,
+		duration: number,
+	): Promise<{ random: boolean; resume: boolean }>
+	setTrackBehavior(id: string, random: boolean, resume: boolean): Promise<void>
 	/** 重新添加曲目下载请求，让 Media3 可以重试失败任务。 */
 	retryDownload(track: Track): Promise<void>
 	/** 设置 Media3 下载任务的最大并行数量。 */

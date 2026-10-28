@@ -14,6 +14,7 @@ import CoverWithPlaceHolder from '@/components/common/CoverWithPlaceHolder'
 import UniversalCheckbox from '@/components/common/UniversalCheckbox'
 import { VariantPlainText } from '@/components/common/VariantPlainText'
 import useIsCurrentTrack from '@/hooks/player/useIsCurrentTrack'
+import { usePlaybackFailureStore } from '@/hooks/stores/usePlaybackFailureStore'
 import {
 	LIST_ITEM_COVER_SIZE,
 	LIST_ITEM_BORDER_RADIUS,
@@ -82,6 +83,9 @@ export const TrackListItem = memo(function TrackListItem({
 	const theme = useTheme()
 	const dark = useColorScheme() === 'dark'
 	const isCurrentTrack = useIsCurrentTrack(data.uniqueKey)
+	const failure = usePlaybackFailureStore(
+		(state) => state.failures[data.uniqueKey]?.message,
+	)
 
 	const highlighted = (isCurrentTrack && !selectMode) || isSelected
 
@@ -209,6 +213,13 @@ export const TrackListItem = memo(function TrackListItem({
 						>
 							{data.title}
 						</VariantPlainText>
+						{failure && (
+							<VariantPlainText
+								variant='bodySmall'
+								numberOfLines={1}
+								style={{ color: theme.colors.error }}
+							>{`播放失败：${failure}`}</VariantPlainText>
+						)}
 						<View style={styles.detailsContainer}>
 							{/* Display Artist if available */}
 							{data.artist && (

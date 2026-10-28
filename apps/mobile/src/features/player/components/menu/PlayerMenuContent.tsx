@@ -1,10 +1,11 @@
-import { DownloadState, Orpheus } from '@bbplayer/orpheus'
+import { DownloadState } from '@bbplayer/orpheus'
 import { useRouter } from 'expo-router'
 import { useCallback, type ReactNode } from 'react'
 import { View, type StyleProp, type ViewStyle } from 'react-native'
 import SquircleView from 'react-native-fast-squircle'
 import { Icon, List, Text, TouchableRipple, useTheme } from 'react-native-paper'
 
+import { requestDownloads } from '@/features/downloads/requestDownloads'
 import useCurrentTrack from '@/hooks/player/useCurrentTrack'
 import { useBatchDownloadStatus } from '@/hooks/queries/orpheus'
 import { playbackContextStore$ } from '@/hooks/stores/playbackContextStore'
@@ -13,6 +14,8 @@ import { switchPlayerMode } from '@/lib/player/playbackSession'
 import { toastAndLogError } from '@/utils/error-handling'
 import { getInternalPlayUri } from '@/utils/player'
 import toast from '@/utils/toast'
+
+import TrackBehaviorSettings from './TrackBehaviorSettings'
 
 export interface PlayerMenuContentProps {
 	onAction: (action: () => void) => void
@@ -109,14 +112,20 @@ export function PlayerDownloadButton({ onAction }: PlayerMenuContentProps) {
 		const artistName = currentTrack.artist?.name
 		const artworkUrl = currentTrack.coverUrl ?? undefined
 		try {
-			await Orpheus.downloadTrack({
-				id: currentTrack.uniqueKey,
-				url: url,
-				title: currentTrack.title,
-				artist: artistName,
-				artwork: artworkUrl,
-				duration: currentTrack.duration,
-			})
+			const queued = await requestDownloads([
+				{
+					id: currentTrack.uniqueKey,
+					url: url,
+					title: currentTrack.title,
+					artist: artistName,
+					artwork: artworkUrl,
+					duration: currentTrack.duration,
+				},
+			])
+			if (!queued) {
+				toast.info('已下载或已加入下载队列')
+				return
+			}
 			toast.success('已添加到下载队列')
 		} catch (e) {
 			toastAndLogError(
@@ -132,7 +141,7 @@ export function PlayerDownloadButton({ onAction }: PlayerMenuContentProps) {
 			icon='download'
 			label={
 				downloadStatus?.[trackId ?? ''] === DownloadState.COMPLETED
-					? '重新下载'
+					? '已下载'
 					: '下载'
 			}
 			onPress={() => onAction(downloadHandler)}
@@ -149,6 +158,7 @@ export function SharedTrackActions({
 	const uploaderMid = Number(currentTrack?.artist?.remoteId ?? undefined)
 	return (
 		<>
+			<TrackBehaviorSettings />
 			{currentTrack?.source === 'bilibili' && (
 				<List.Item
 					title='添加到 bilibili 收藏夹'

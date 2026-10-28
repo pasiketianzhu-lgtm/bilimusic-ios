@@ -1,6 +1,7 @@
 export type SharedPlaylistRole = 'owner' | 'editor' | 'subscriber'
 
 export interface CreatePlaylistPayload {
+	systemKey?: 'liked'
 	title: string
 	description?: string | null
 	coverUrl?: string | null

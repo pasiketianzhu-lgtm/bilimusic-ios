@@ -7,6 +7,7 @@ import { fetch as NetInfoFetch } from '@react-native-community/netinfo'
 import { PermissionsAndroid, Platform } from 'react-native'
 
 import { lyricsQueryKeys } from '@/hooks/queries/lyrics'
+import { usePlaybackFailureStore } from '@/hooks/stores/usePlaybackFailureStore'
 import { queryClient } from '@/lib/config/queryClient'
 import lyricService from '@/lib/services/lyricService'
 import log, { reportErrorToSentry } from '@/utils/log'
@@ -67,6 +68,14 @@ class PlayerSideEffects {
 
 		// 设置播放器错误处理
 		this.setupErrorHandler()
+		Orpheus.addListener('onIsPlayingChanged', ({ status }) => {
+			if (status)
+				void Orpheus.getCurrentTrack()
+					.then((track) => {
+						if (track) usePlaybackFailureStore.getState().clear(track.id)
+					})
+					.catch(() => undefined)
+		})
 		this.setupSpectrumVisualizerErrorHandler()
 	}
 
@@ -282,6 +291,11 @@ class PlayerSideEffects {
 					description:
 						'errorCode' in event ? String(event.errorCode) : undefined,
 				})
+				if (event.platform === 'ios' && event.trackId) {
+					usePlaybackFailureStore
+						.getState()
+						.record(event.trackId, playerErrorInfo.message)
+				}
 
 				if (playerErrorInfo.shouldReport) {
 					reportErrorToSentry(

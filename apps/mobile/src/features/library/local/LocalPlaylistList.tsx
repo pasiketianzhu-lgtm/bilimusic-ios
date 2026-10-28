@@ -30,11 +30,6 @@ const IMPORT_PLAYLIST_ICON = Icon.select({
 	android: import('@expo/material-symbols/link.xml'),
 })
 
-const SUBSCRIBE_PLAYLIST_ICON = Icon.select({
-	ios: 'person.2',
-	android: import('@expo/material-symbols/group.xml'),
-})
-
 const MERGE_PLAYLIST_ICON = Icon.select({
 	ios: 'arrow.merge',
 	android: import('@expo/material-symbols/merge.xml'),
@@ -111,11 +106,6 @@ const LocalPlaylistListComponent = memo(() => {
 			title: '导入外部歌单',
 			image: IMPORT_PLAYLIST_ICON,
 			onPress: () => openModal('InputExternalPlaylistInfo', undefined),
-		},
-		{
-			title: '订阅共享歌单',
-			image: SUBSCRIBE_PLAYLIST_ICON,
-			onPress: () => openModal('SubscribeToSharedPlaylist', undefined),
 		},
 		{
 			title: '动态合并歌单',

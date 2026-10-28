@@ -1,4 +1,6 @@
 import { verify } from '@bbplayer/splash'
+import * as DocumentPicker from 'expo-document-picker'
+import { File } from 'expo-file-system'
 import * as WebBrowser from 'expo-web-browser'
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
@@ -85,6 +87,25 @@ export default function EditLyricsModal({
 				)
 			default:
 				return null
+		}
+	}
+
+	const importLrc = async () => {
+		try {
+			const result = await DocumentPicker.getDocumentAsync({
+				type: '*/*',
+				copyToCacheDirectory: true,
+			})
+			if (result.canceled) return
+			const file = new File(result.assets[0].uri)
+			if (file.size > 2 * 1024 * 1024) throw new Error('歌词文件不能超过 2 MB')
+			const text = await file.text()
+			if (!/\[\d{1,3}:\d{2}(?:[.:]\d+)?\]/.test(text))
+				throw new Error('未找到 LRC 时间标签，请选择 LRC 歌词文件')
+			setLrc(text.replace(/^\uFEFF/, ''))
+			setIndex(0)
+		} catch (error) {
+			toastAndLogError('导入歌词失败', error, 'Lyrics.Import')
 		}
 	}
 
@@ -186,6 +207,7 @@ export default function EditLyricsModal({
 	return (
 		<>
 			<Dialog.Title>编辑歌词</Dialog.Title>
+			<Button onPress={() => void importLrc()}>从文件导入 LRC</Button>
 			<Dialog.Content style={styles.content}>
 				<View style={styles.header}>
 					<Text style={{ color: theme.colors.onSurfaceVariant }}>

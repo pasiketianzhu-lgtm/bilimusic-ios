@@ -453,6 +453,9 @@ interface BilibiliSearchSuggestionItem {
 }
 
 interface BilibiliWebPlayerInfo {
+	subtitle?: {
+		subtitles?: { lan: string; lan_doc: string; subtitle_url: string }[]
+	}
 	view_points?: { type?: number; from: number; to: number; content: string }[]
 	bgm_info?: {
 		music_id: number

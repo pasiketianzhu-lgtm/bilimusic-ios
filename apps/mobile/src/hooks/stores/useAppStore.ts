@@ -13,7 +13,8 @@ import { analyticsService } from '@/lib/services/analyticsService'
 import type { AppState, Settings } from '@/types/core/appStore'
 import type { StorageKey } from '@/types/storage'
 import log from '@/utils/log'
-import { storage, zustandStorage } from '@/utils/mmkv'
+import { storage } from '@/utils/mmkv'
+import { secureAppStorage } from '@/utils/secureAppStorage'
 import { migrateStartupScreen } from '@/utils/startup-screen'
 
 const logger = log.extend('Store.App')
@@ -271,7 +272,7 @@ export const useAppStore = create<AppState>()(
 		}),
 		{
 			name: 'app-storage',
-			storage: createJSONStorage(() => zustandStorage),
+			storage: createJSONStorage(() => secureAppStorage),
 			version: 6,
 
 			partialize: (state) => ({

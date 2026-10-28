@@ -44,7 +44,7 @@ public class ExpoOrpheusModule: Module {
         }
 
         manager.onPlayerError = { [weak self] errorMsg in
-            self?.sendEvent("onPlayerError", ["platform": "ios", "error": errorMsg])
+            self?.sendEvent("onPlayerError", ["platform": "ios", "error": errorMsg, "trackId": manager.getCurrentTrack()?.id ?? ""])
         }
 
         manager.onIsPlayingChanged = { [weak self] isPlaying in
@@ -232,6 +232,26 @@ public class ExpoOrpheusModule: Module {
 
     // MARK: - Downloads
 
+    Function("getDownloadQuality") { () -> Int in
+        return GeneralStorage.shared.downloadQuality
+    }
+
+    Function("setDownloadQuality") { (quality: Int) in
+        GeneralStorage.shared.downloadQuality = quality
+    }
+
+    Function("getTrackBehavior") { (id: String, duration: Double) -> [String: Bool] in
+        var track = Track()
+        track.id = id
+        track.duration = duration
+        return ["random": GeneralStorage.shared.participatesInRandom(track),
+                "resume": GeneralStorage.shared.remembersPosition(track)]
+    }
+
+    Function("setTrackBehavior") { (id: String, random: Bool, resume: Bool) in
+        GeneralStorage.shared.setTrackBehavior(id: id, random: random, resume: resume)
+    }
+
     Function("downloadTrack") { (track: Track) in
         OrpheusDownloadManager.shared.downloadTrack(track: track)
     }
@@ -244,12 +264,16 @@ public class ExpoOrpheusModule: Module {
         OrpheusDownloadManager.shared.resumeDownload(id: id)
     }
 
+    Function("pauseDownload") { (id: String) in
+        OrpheusDownloadManager.shared.pauseDownload(id: id)
+    }
+
     Function("retryDownload") { (track: Track) in
         OrpheusDownloadManager.shared.downloadTrack(track: track)
     }
 
-    Function("setDownloadMaxParallelTasks") { (_: Int) in
-        // iOS download concurrency is currently managed by URLSession.
+    Function("setDownloadMaxParallelTasks") { (count: Int) in
+        OrpheusDownloadManager.shared.setMaxParallel(count)
     }
 
     Function("removeDownload") { (id: String) in

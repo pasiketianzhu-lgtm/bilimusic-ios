@@ -26,17 +26,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ActivityIndicator from '@/components/common/ActivityIndicator'
 import { alert } from '@/components/modals/AlertModal'
 import SkinAppbarBackground from '@/components/navigation/SkinAppbarBackground'
+import RecentTracks from '@/features/history/RecentTracks'
+import { selectHomePlaylists } from '@/features/home/homePreview'
+import LocalSearchResults from '@/features/search/LocalSearchResults'
 import SearchHistory, {
 	type SearchHistoryItem,
 } from '@/features/search/SearchHistory'
 import SearchSuggestions from '@/features/search/SearchSuggestions'
-import { selectHomePlaylists } from '@/features/home/homePreview'
-import useCurrentTrack from '@/hooks/player/useCurrentTrack'
 import { useIncomingShare } from '@/hooks/app/useIncomingShare'
+import useCurrentTrack from '@/hooks/player/useCurrentTrack'
+import { usePlaylistLists } from '@/hooks/queries/db/playlist'
 import useSkinForegroundColor from '@/hooks/theme/useSkinForegroundColor'
 import { useNowPlayingBar } from '@/hooks/ui/useNowPlayingBar'
-import { usePlaylistLists } from '@/hooks/queries/db/playlist'
 import { markPerfInteractive } from '@/lib/performance'
+import { ensureLikedPlaylist } from '@/lib/services/likedPlaylistService'
 import { toastAndLogError } from '@/utils/error-handling'
 import {
 	matchSearchStrategies,
@@ -267,7 +270,7 @@ export default function SearchPage() {
 					variant='headlineSmall'
 					style={[styles.title, { color: headerForegroundColor }]}
 				>
-					搜索
+					首页
 				</Text>
 			</View>
 			<View
@@ -305,8 +308,28 @@ export default function SearchPage() {
 						contentContainerStyle={styles.homePreview}
 						showsVerticalScrollIndicator={false}
 					>
+						<List.Item
+							title='我喜欢'
+							description='收藏的音乐，随时听'
+							left={(props) => (
+								<List.Icon
+									{...props}
+									icon='heart'
+								/>
+							)}
+							onPress={() => {
+								void ensureLikedPlaylist()
+									.then((id) => router.navigate(`/playlist/local/${id}`))
+									.catch((error: unknown) =>
+										toastAndLogError('打开我喜欢失败', error, 'Home'),
+									)
+							}}
+						/>
 						<View style={styles.sectionHeader}>
-							<Text variant='titleMedium' style={styles.sectionTitle}>
+							<Text
+								variant='titleMedium'
+								style={styles.sectionTitle}
+							>
 								我的歌单
 							</Text>
 							<Pressable onPress={() => router.navigate('/library/0')}>
@@ -317,7 +340,12 @@ export default function SearchPage() {
 							<List.Item
 								title='创建你的第一个歌单'
 								description='把喜欢的 B 站音乐整理到一起'
-								left={(props) => <List.Icon {...props} icon='playlist-plus' />}
+								left={(props) => (
+									<List.Icon
+										{...props}
+										icon='playlist-plus'
+									/>
+								)}
 								onPress={() => router.navigate('/library/0')}
 							/>
 						) : (
@@ -332,7 +360,12 @@ export default function SearchPage() {
 											icon={playlist.isPinned ? 'pin' : 'playlist-music'}
 										/>
 									)}
-									right={(props) => <List.Icon {...props} icon='chevron-right' />}
+									right={(props) => (
+										<List.Icon
+											{...props}
+											icon='chevron-right'
+										/>
+									)}
 									onPress={() =>
 										router.navigate(`/playlist/local/${playlist.id}`)
 									}
@@ -342,15 +375,26 @@ export default function SearchPage() {
 						<List.Item
 							title='最近播放'
 							description='继续上次的音乐'
-							left={(props) => <List.Icon {...props} icon='history' />}
-							right={(props) => <List.Icon {...props} icon='chevron-right' />}
-							onPress={() => router.navigate('/playlist/recently')}
+							left={(props) => (
+								<List.Icon
+									{...props}
+									icon='history'
+								/>
+							)}
+							right={(props) => (
+								<List.Icon
+									{...props}
+									icon='chevron-right'
+								/>
+							)}
+							onPress={() => router.navigate('/history/recent')}
 						/>
+						<RecentTracks limit={3} />
 					</ScrollView>
 				)}
 				{isResolving ? (
 					<ActivityIndicator style={styles.resolving} />
-				) : (
+				) : searchFocused ? (
 					<>
 						<SearchHistory
 							searchHistory={searchHistory}
@@ -364,15 +408,19 @@ export default function SearchPage() {
 							pointerEvents='box-none'
 							style={styles.suggestions}
 						>
+							<LocalSearchResults query={deferredSearchQuery} />
 							<SearchSuggestions
 								query={deferredSearchQuery}
 								visible={suggestionsVisible}
-								availableHeight={contentHeight - contentBottomPadding}
+								availableHeight={Math.max(
+									100,
+									contentHeight - contentBottomPadding - 240,
+								)}
 								onSuggestionPress={handleSuggestionPress}
 							/>
 						</View>
 					</>
-				)}
+				) : null}
 			</View>
 		</KeyboardAvoidingView>
 	)
@@ -396,4 +444,3 @@ const styles = StyleSheet.create({
 	suggestions: { position: 'absolute', top: 0, left: 16, right: 16, zIndex: 1 },
 	resolving: { flex: 1 },
 })
-

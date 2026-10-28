@@ -35,7 +35,10 @@ export default function DownloadHeader({
 			</Text>
 			<View style={styles.buttonContainer}>
 				{onOpenDownloaded && (
-					<Button mode='text' onPress={onOpenDownloaded}>
+					<Button
+						mode='text'
+						onPress={onOpenDownloaded}
+					>
 						已下载
 					</Button>
 				)}
@@ -61,6 +64,8 @@ export default function DownloadHeader({
 const styles = StyleSheet.create({
 	container: {
 		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
 		justifyContent: 'space-between',
 		alignItems: 'center',
 		paddingHorizontal: 16,
@@ -69,6 +74,7 @@ const styles = StyleSheet.create({
 	},
 	buttonContainer: {
 		flexDirection: 'row',
+		flexWrap: 'wrap',
 		gap: 8,
 	},
 })

@@ -7,14 +7,12 @@ import { Appbar, useTheme } from 'react-native-paper'
 import { PlaylistError } from '@/features/playlist/remote/components/PlaylistError'
 import { PlaylistHeader } from '@/features/playlist/remote/components/PlaylistHeader'
 import { TrackList } from '@/features/playlist/remote/components/RemoteTrackList'
-import useCheckLinkedToPlaylist from '@/features/playlist/remote/hooks/useCheckLinkedToLocalPlaylist'
 import { usePlaylistMenu } from '@/features/playlist/remote/hooks/usePlaylistMenu'
 import { useRemotePlaylist } from '@/features/playlist/remote/hooks/useRemotePlaylist'
 import { useTrackSelection } from '@/features/playlist/remote/hooks/useTrackSelection'
 import { PlaylistPageSkeleton } from '@/features/playlist/skeletons/PlaylistSkeleton'
 import { useInfiniteFavoriteList } from '@/hooks/queries/bilibili/favorite'
 import { useScreenTransitionReady } from '@/hooks/router/useScreenTransitionReady'
-import useAppStore from '@/hooks/stores/useAppStore'
 import { useModalStore } from '@/hooks/stores/useModalStore'
 import { useDoubleTapScrollToTop } from '@/hooks/ui/useDoubleTapScrollToTop'
 import { usePlaylistBackgroundColor } from '@/hooks/ui/usePlaylistBackgroundColor'
@@ -22,7 +20,6 @@ import { bv2av } from '@/lib/api/bilibili/utils'
 import type { BilibiliFavoriteListContent } from '@/types/apis/bilibili'
 import type { BilibiliTrack, Track } from '@/types/core/media'
 import { resolveBilibiliImageUrl } from '@/utils/imageUrl'
-import toast from '@/utils/toast'
 
 const mapApiItemToTrack = (
 	apiItem: BilibiliFavoriteListContent,
@@ -61,7 +58,6 @@ export default function FavoritePage() {
 	const { colors } = theme
 	const router = useRouter()
 	const [refreshing, setRefreshing] = useState(false)
-	const linkedPlaylistId = useCheckLinkedToPlaylist(Number(id), 'favorite')
 
 	const { selected, selectMode, toggle, enterSelectMode } = useTrackSelection()
 	const selection = useMemo(
@@ -113,30 +109,11 @@ export default function FavoritePage() {
 	const trackMenuItems = usePlaylistMenu(playTrack)
 
 	const handleSync = useCallback(() => {
-		if (favoriteData?.pages.flatMap((page) => page.medias).length === 0) {
-			toast.info('收藏夹为空，无需同步')
-			return
-		}
-
-		const { expandMultiPageOnSync } = useAppStore.getState().settings
-		if (expandMultiPageOnSync === null) {
-			openModal('SyncOptions', {
-				favoriteId: Number(id),
-				shouldRedirectToLocalPlaylist: true,
-			})
-			return
-		}
-		openModal(
-			'PlaylistSyncProgress',
-			{
-				remoteId: Number(id),
-				type: 'favorite',
-				shouldRedirectToLocalPlaylist: true,
-				expandMultiPage: expandMultiPageOnSync,
-			},
-			{ dismissible: false },
-		)
-	}, [favoriteData?.pages, id, openModal])
+		router.navigate({
+			pathname: '/playlist/import-favorite/[id]',
+			params: { id },
+		})
+	}, [id, router])
 
 	useEffect(() => {
 		if (typeof id !== 'string') {
@@ -225,7 +202,7 @@ export default function FavoritePage() {
 							description={favoriteData.pages[0].info.intro}
 							onClickMainButton={handleSync}
 							mainButtonIcon={'sync'}
-							linkedPlaylistId={linkedPlaylistId}
+							mainButtonText='导入到歌单'
 							id={id}
 							primaryButtonColor={primaryButtonColor}
 							primaryButtonTextColor={primaryButtonTextColor}

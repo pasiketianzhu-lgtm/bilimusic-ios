@@ -1,4 +1,3 @@
-import { Orpheus } from '@bbplayer/orpheus'
 import * as Clipboard from 'expo-clipboard'
 import type { ImageRef } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -16,6 +15,7 @@ import Button from '@/components/common/Button'
 import CoverWithPlaceHolder from '@/components/common/CoverWithPlaceHolder'
 import IconButton from '@/components/common/IconButton'
 import { alert } from '@/components/modals/AlertModal'
+import { requestDownloads } from '@/features/downloads/requestDownloads'
 import type { SharedPlaylistMember } from '@/hooks/queries/sharedPlaylistMembers'
 import { useModalStore } from '@/hooks/stores/useModalStore'
 import { playlistService } from '@/lib/services/playlistService'
@@ -29,7 +29,7 @@ import toast from '@/utils/toast'
 interface PlaylistHeaderProps {
 	playlist: Playlist & { validTrackCount: number }
 	totalDuration?: number
-	onClickPlayAll: () => void
+	onClickPlayAll: (startFromId?: string, reverse?: boolean) => void
 	onClickSync: () => void
 	onClickCopyToLocalPlaylist: () => void
 	/** 当作者为 bilibili 时触发。可选，未提供时仅视觉提示不响应 */
@@ -129,31 +129,39 @@ export const PlaylistHeader = memo(function PlaylistHeader({
 			)
 			return
 		}
-		void Orpheus.multiDownload(
-			tracksResult.value
-				.filter((item) =>
-					item.source === 'bilibili'
-						? item.bilibiliMetadata.videoIsValid
-						: true,
-				)
-				.map((t) => {
-					const url = getInternalPlayUri(t)
-					if (!url) return
-					return {
-						id: t.uniqueKey,
-						title: t.title,
-						url: url,
-						artist: t.artist?.name,
-						artwork: resolveTrackCover(t.uniqueKey, t.coverUrl) ?? undefined,
-						duration: t.duration,
-					}
-				})
-				.filter((t) => !!t),
-		)
+		try {
+			const queued = await requestDownloads(
+				tracksResult.value
+					.filter((item) =>
+						item.source === 'bilibili'
+							? item.bilibiliMetadata.videoIsValid
+							: true,
+					)
+					.map((t) => {
+						const url = getInternalPlayUri(t)
+						if (!url) return
+						return {
+							id: t.uniqueKey,
+							title: t.title,
+							url: url,
+							artist: t.artist?.name,
+							artwork: resolveTrackCover(t.uniqueKey, t.coverUrl) ?? undefined,
+							duration: t.duration,
+						}
+					})
+					.filter((t) => !!t),
+				{ id: playlist.id, title: playlist.title },
+			)
+			if (!queued) return
+		} catch (error) {
+			toastAndLogError('添加下载失败', error, 'Playlist.Download')
+			return
+		}
+
 		useModalStore.getState().doAfterModalHostClosed(() => {
 			router.navigate('/download')
 		})
-	}, [playlist.id, router])
+	}, [playlist.id, playlist.title, router])
 
 	if (!playlist.title) return null
 
@@ -361,6 +369,13 @@ export const PlaylistHeader = memo(function PlaylistHeader({
 						textColor={primaryButtonTextColor}
 					>
 						播放全部
+					</Button>
+					<Button
+						mode='outlined'
+						icon='sort-reverse-variant'
+						onPress={() => onClickPlayAll(undefined, true)}
+					>
+						倒序播放
 					</Button>
 
 					{playlist.type !== 'local' && playlist.type !== 'dynamic' && (

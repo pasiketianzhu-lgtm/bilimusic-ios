@@ -6,6 +6,11 @@ class OrpheusQueueManager {
     private var shuffleIndices: [Int]?
     private var currentIndex: Int = -1 // This is ALWAYS the index in backingQueue
     private var pendingShuffleInit: Bool = false
+    private var history: [String] = []
+    private var goingBack = false
+    private var randomSteps = 0
+    private var reservedRandomIndex: Int?
+    private var requestedNextId: String?
     
     // MARK: - Getters
     
@@ -33,6 +38,11 @@ class OrpheusQueueManager {
     // MARK: - Queue Operations
     
     func setQueue(_ tracks: [Track], startFromIndex: Int, inputShuffleMode: Bool) {
+        history.removeAll()
+        goingBack = false
+        randomSteps = 0
+        reservedRandomIndex = nil
+        requestedNextId = nil
         backingQueue = tracks
         
         if inputShuffleMode {
@@ -59,6 +69,10 @@ class OrpheusQueueManager {
     }
     
     func setShuffleMode(_ enabled: Bool) {
+        if enabled != isShuffled() {
+            randomSteps = 0
+            reservedRandomIndex = nil
+        }
         if enabled {
             if backingQueue.isEmpty {
                 pendingShuffleInit = true
@@ -93,6 +107,16 @@ class OrpheusQueueManager {
     // Returns the backing index of the next track
     func getNextIndex(repeatMode: RepeatMode) -> Int? {
         guard !backingQueue.isEmpty else { return nil }
+        if isShuffled() {
+            if let requested = requestedNextId, let index = backingQueue.firstIndex(where: { $0.id == requested }) { return index }
+            let eligible = backingQueue.indices.filter { GeneralStorage.shared.participatesInRandom(backingQueue[$0]) }
+            let candidates = eligible.filter { backingQueue[$0].id != getCurrentTrack()?.id }
+            guard !candidates.isEmpty else { return nil }
+            if repeatMode == .off && randomSteps >= eligible.count { return nil }
+            if let reserved = reservedRandomIndex, candidates.contains(reserved) { return reserved }
+            reservedRandomIndex = candidates.randomElement()
+            return reservedRandomIndex
+        }
         
         let playbackIndex = getPlaybackIndex(for: currentIndex)
         var nextPlaybackIndex = playbackIndex + 1
@@ -110,6 +134,12 @@ class OrpheusQueueManager {
     
     func getPreviousIndex(repeatMode: RepeatMode) -> Int? {
         guard !backingQueue.isEmpty else { return nil }
+        if isShuffled() {
+            for id in history.dropLast().reversed() {
+                if let index = backingQueue.firstIndex(where: { $0.id == id && $0.id != getCurrentTrack()?.id }) { return index }
+            }
+            return nil
+        }
         
         let playbackIndex = getPlaybackIndex(for: currentIndex)
         var prevPlaybackIndex = playbackIndex - 1
@@ -125,8 +155,21 @@ class OrpheusQueueManager {
         return getBackingIndex(from: prevPlaybackIndex)
     }
      
+    func prepareBackwardNavigation() { goingBack = true }
+
     func skipTo(backingIndex: Int) {
         if backingIndex >= 0 && backingIndex < backingQueue.count {
+            if isShuffled() && !goingBack && currentIndex != backingIndex { randomSteps += 1 }
+            reservedRandomIndex = nil
+            requestedNextId = nil
+            let id = backingQueue[backingIndex].id
+            if goingBack {
+                if let position = history.dropLast().lastIndex(of: id) { history = Array(history.prefix(position + 1)) }
+            } else if history.last != id {
+                history.append(id)
+                if history.count > 200 { history.removeFirst() }
+            }
+            goingBack = false
             currentIndex = backingIndex
         }
     }
@@ -155,6 +198,7 @@ class OrpheusQueueManager {
               backingQueue.indices.contains(toIndex),
               fromIndex != toIndex else { return false }
 
+        reservedRandomIndex = nil
         let track = backingQueue.remove(at: fromIndex)
         backingQueue.insert(track, at: toIndex)
 
@@ -174,6 +218,8 @@ class OrpheusQueueManager {
         // Returns true if current track was removed (requiring player stop/next)
         guard backingIndex >= 0 && backingIndex < backingQueue.count else { return false }
         
+        reservedRandomIndex = nil
+        if requestedNextId == backingQueue[backingIndex].id { requestedNextId = nil }
         let wasCurrent = (backingIndex == currentIndex)
         var removedShufflePos: Int? = nil
         
@@ -222,6 +268,7 @@ class OrpheusQueueManager {
     func append(tracks: [Track]) {
         let startIndex = backingQueue.count
         backingQueue.append(contentsOf: tracks)
+        if currentIndex < 0 && !backingQueue.isEmpty { currentIndex = 0 }
         
         if pendingShuffleInit {
             generateShuffleIndices()
@@ -243,6 +290,7 @@ class OrpheusQueueManager {
         
         let insertIndex = currentIndex + 1
         backingQueue.insert(track, at: insertIndex)
+        requestedNextId = track.id
         
         if var indices = shuffleIndices {
              // We inserted at `insertIndex`.
@@ -264,6 +312,11 @@ class OrpheusQueueManager {
     }
     
     func clear() {
+        history.removeAll()
+        goingBack = false
+        randomSteps = 0
+        reservedRandomIndex = nil
+        requestedNextId = nil
         backingQueue.removeAll()
         shuffleIndices = nil
         currentIndex = -1

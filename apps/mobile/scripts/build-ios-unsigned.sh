@@ -4,6 +4,11 @@ set -Eeuo pipefail
 # Run from apps/mobile on a macOS EAS worker. Signing happens on the
 # owner's computer after download; no Apple credentials enter this build.
 mkdir -p build
+xcrun swiftc -parse-as-library \
+  ../../packages/orpheus/ios/OrpheusQueueManager.swift \
+  ../../packages/orpheus/iosTests/QueuePolicySmoke.swift \
+  -o build/queue-policy-tests
+build/queue-policy-tests
 if ! xcodebuild \
   -workspace ios/BBPlayerPreview.xcworkspace \
   -scheme BBPlayerPreview \

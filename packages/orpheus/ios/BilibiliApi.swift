@@ -172,13 +172,13 @@ class BilibiliApi {
         }.resume()
     }
     
-    func getPlayUrl(bvid: String, cid: String, completion: @escaping (Result<String, Error>) -> Void) {
+    func getPlayUrl(bvid: String, cid: String, audioQuality: Int = 0, completion: @escaping (Result<String, Error>) -> Void) {
         guard let imgKey = imgKey, let subKey = subKey else {
             // Refresh nav info first
             refreshNavInfo { result in
                 switch result {
                 case .success:
-                    self.getPlayUrl(bvid: bvid, cid: cid, completion: completion)
+                    self.getPlayUrl(bvid: bvid, cid: cid, audioQuality: audioQuality, completion: completion)
                 case .failure(let error):
                     completion(.failure(error))
                 }
@@ -242,7 +242,9 @@ class BilibiliApi {
                 }
                 
                 // Prioritize Dash Audio, then Durl
-                if let audioUrl = playUrlResponse.data?.dash?.audio?.first?.baseUrl {
+                let audio = playUrlResponse.data?.dash?.audio ?? []
+                let selected = audio.first(where: { $0.id == audioQuality }) ?? audio.max(by: { $0.id < $1.id })
+                if let audioUrl = selected?.baseUrl {
                     completion(.success(audioUrl))
                 } else if let mp4Url = playUrlResponse.data?.durl?.first?.url {
                     completion(.success(mp4Url))

@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useState } from 'react'
 import type { ColorSchemeName } from 'react-native'
 import {
-	Dimensions,
 	Pressable,
 	StyleSheet,
 	TouchableOpacity,
@@ -30,11 +29,6 @@ import {
 } from '@/theme/dimensions'
 import { getGradientColors } from '@/utils/color'
 
-const { width: screenWidth } = Dimensions.get('window')
-
-const COVER_SIZE_RECT = screenWidth - 80
-const COVER_SIZE_CIRCLE = screenWidth - 120
-
 export function TrackInfo({
 	onArtistPress,
 	onPressCover,
@@ -45,6 +39,7 @@ export function TrackInfo({
 	coverRef: ImageRef | null
 }) {
 	const { colors } = useTheme()
+	const [availableWidth, setAvailableWidth] = useState(320)
 
 	const colorScheme: ColorSchemeName = useColorScheme()
 	const isDark: boolean = colorScheme === 'dark'
@@ -96,6 +91,7 @@ export function TrackInfo({
 
 	return (
 		<View
+			onLayout={(event) => setAvailableWidth(event.nativeEvent.layout.width)}
 			style={{
 				position: 'relative',
 			}}
@@ -103,13 +99,16 @@ export function TrackInfo({
 			<Computed>
 				{() => {
 					const podcast = playbackContextStore$.context.mode.get() === 'podcast'
-					const coverSize = podcast ? COVER_SIZE_RECT : COVER_SIZE_CIRCLE
+					const coverSize = Math.max(
+						100,
+						Math.min(400, availableWidth - (podcast ? 80 : 120)),
+					)
 					const coverBorderRadius = podcast
-						? COVER_SIZE_RECT * SQUIRCLE_RADIUS_RATIO
+						? coverSize * SQUIRCLE_RADIUS_RATIO
 						: coverSize / 2
 					return (
 						<Pressable
-							style={styles.coverContainer}
+							style={[styles.coverContainer, { height: coverSize + 48 }]}
 							onPress={podcast ? undefined : onPressCover}
 							disabled={podcast}
 						>
@@ -233,7 +232,6 @@ const styles = StyleSheet.create({
 	coverContainer: {
 		alignItems: 'center',
 		justifyContent: 'center',
-		height: COVER_SIZE_RECT + 48,
 		paddingHorizontal: 32,
 	},
 	coverGradient: {

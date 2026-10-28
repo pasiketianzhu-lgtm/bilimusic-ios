@@ -99,6 +99,14 @@ export const playHistory = sqliteTable(
 export const playlists = sqliteTable(
 	'playlists',
 	{
+		systemKey: text('system_key').unique(),
+		syncId: text('sync_id')
+			.unique()
+			.$defaultFn(
+				() =>
+					globalThis.crypto?.randomUUID?.() ??
+					`${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,
+			),
 		playerPreference: text('player_preference', {
 			enum: ['inherit', 'music', 'podcast'],
 		})

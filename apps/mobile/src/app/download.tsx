@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import ActivityIndicator from '@/components/common/ActivityIndicator'
 import DownloadHeader from '@/features/downloads/DownloadHeader'
+import DownloadSummary from '@/features/downloads/DownloadSummary'
 import DownloadTaskItem from '@/features/downloads/DownloadTaskItem'
 import useCurrentTrack from '@/hooks/player/useCurrentTrack'
 import { orpheusQueryKeys, useDownloadTasks } from '@/hooks/queries/orpheus'
@@ -74,6 +75,7 @@ export function DownloadPage({ embedded = false }: { embedded?: boolean }) {
 		<View style={[styles.container, { backgroundColor: colors.background }]}>
 			{header}
 
+			<DownloadSummary />
 			<DownloadHeader
 				taskCount={tasks.length}
 				retryableCount={tasks.filter(canRetryDownloadTask).length}

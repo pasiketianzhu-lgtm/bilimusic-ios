@@ -12,6 +12,7 @@ import {
 	ShareSongAction,
 	type PlayerMenuContentProps,
 } from './PlayerMenuContent'
+import VideoSubtitleAction from './VideoSubtitleAction'
 
 export function MusicFunctionalMenu({
 	onAction: handleAction,
@@ -38,6 +39,7 @@ export function MusicFunctionalMenu({
 			<PlayerModeSwitch onAction={handleAction} />
 			<Divider />
 			<SharedTrackActions onAction={handleAction} />
+			<VideoSubtitleAction onAction={handleAction} />
 			<List.Item
 				title='搜索歌词'
 				left={(props) => (

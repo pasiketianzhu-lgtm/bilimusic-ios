@@ -95,7 +95,7 @@ export default function PlayerPage() {
 		onError: () => void 0,
 	})
 	const { width, height } = useWindowDimensions()
-	const isTabletLandscape = width >= 900 && width > height
+	const isTabletLandscape = width >= 900 && height >= 600 && width > height
 	const colorScheme = useColorScheme()
 	// 旧版 md3 / streamer 等存量值也回落到普通渐变。
 	const isFluidBackground = useAppStore(
@@ -143,7 +143,7 @@ export default function PlayerPage() {
 	}, [isPreventingBack])
 
 	const handleDismiss = () => {
-		if (index === 1) {
+		if (!isTabletLandscape && index === 1) {
 			pagerRef.current?.setPage(0)
 			return
 		}
@@ -251,7 +251,7 @@ export default function PlayerPage() {
 			void usePlayerQueueSheetStore.getState().close()
 			return
 		}
-		if (index === 1) {
+		if (!isTabletLandscape && index === 1) {
 			pagerRef.current?.setPage(0)
 			return
 		}
@@ -341,54 +341,58 @@ export default function PlayerPage() {
 								<View style={styles.landscapePlayer}>
 									<PlayerQueuePreview />
 									<View style={styles.landscapeMain}>
-										<PlayerMainTab jumpTo={jumpTo} imageRef={coverRef} onPresent={() => {}} />
-									</View>
-									<View style={styles.landscapeLyrics}>
-										<Lyrics currentIndex={index} onPressBackground={() => jumpTo('main')} />
-									</View>
-								</View>
-							) : (
-							<AnimatedPagerView
-								key={
-									playbackContextStore$.context.mode.get() === 'podcast'
-										? 'podcast'
-										: 'music'
-								}
-								scrollEnabled={
-									playbackContextStore$.context.mode.get() !== 'podcast'
-								}
-								ref={pagerRef}
-								style={styles.tabView}
-								initialPage={0}
-								onPageScroll={pageScrollHandler}
-								onPageSelected={(e) => setIndex(e.nativeEvent.position)}
-							>
-								{[
-									<View
-										key='main'
-										style={styles.tabView}
-									>
 										<PlayerMainTab
 											jumpTo={jumpTo}
 											imageRef={coverRef}
 											onPresent={() => {}}
 										/>
-									</View>,
-									...(playbackContextStore$.context.mode.get() === 'podcast'
-										? []
-										: [
-												<View
-													key='lyrics'
-													style={styles.tabView}
-												>
-													<Lyrics
-														currentIndex={index}
-														onPressBackground={() => jumpTo('main')}
-													/>
-												</View>,
-											]),
-								]}
-							</AnimatedPagerView>
+									</View>
+									<View style={styles.landscapeLyrics}>
+										<Lyrics currentIndex={1} />
+									</View>
+								</View>
+							) : (
+								<AnimatedPagerView
+									key={
+										playbackContextStore$.context.mode.get() === 'podcast'
+											? 'podcast'
+											: 'music'
+									}
+									scrollEnabled={
+										playbackContextStore$.context.mode.get() !== 'podcast'
+									}
+									ref={pagerRef}
+									style={styles.tabView}
+									initialPage={0}
+									onPageScroll={pageScrollHandler}
+									onPageSelected={(e) => setIndex(e.nativeEvent.position)}
+								>
+									{[
+										<View
+											key='main'
+											style={styles.tabView}
+										>
+											<PlayerMainTab
+												jumpTo={jumpTo}
+												imageRef={coverRef}
+												onPresent={() => {}}
+											/>
+										</View>,
+										...(playbackContextStore$.context.mode.get() === 'podcast'
+											? []
+											: [
+													<View
+														key='lyrics'
+														style={styles.tabView}
+													>
+														<Lyrics
+															currentIndex={index}
+															onPressBackground={() => jumpTo('main')}
+														/>
+													</View>,
+												]),
+									]}
+								</AnimatedPagerView>
 							)}
 						</Computed>
 					</View>
@@ -424,6 +428,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingBottom: 16,
 	},
-	landscapeMain: { flex: 1.4, minWidth: 320 },
-	landscapeLyrics: { flex: 1, minWidth: 260 },
+	landscapeMain: { flex: 1.4, minWidth: 0 },
+	landscapeLyrics: { flex: 1, minWidth: 0 },
 })

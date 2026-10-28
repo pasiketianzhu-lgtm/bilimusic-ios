@@ -373,6 +373,7 @@ export class PlaylistService {
 					coverUrl: payload.coverUrl ?? null,
 					type: payload.type,
 					remoteSyncId: payload.remoteSyncId ?? null,
+					systemKey: payload.systemKey,
 					shareId: payload.shareId ?? null,
 					shareRole: payload.shareRole ?? null,
 					lastShareSyncAt:
@@ -525,7 +526,7 @@ export class PlaylistService {
 
 	/**
 	 * 批量添加 tracks 到本地播放列表。
-	 * 新 track 总是追加到末尾（sort_key 最大值）。
+	 * 新 track 追加到末尾（查询为 DESC，故使用更小的 sort_key）。
 	 */
 	public addManyTracksToLocalPlaylist(
 		playlistId: number,
@@ -556,24 +557,24 @@ export class PlaylistService {
 					throw createPlaylistNotFound(playlistId)
 				}
 
-				// 获取当前最大 sort_key（DESC 排序下，最大值对应最新加入的歌曲）
-				const maxKeyResult = await Sentry.startSpan(
-					{ name: 'db:query:max_sort_key', op: 'db' },
+				// 获取当前最小 sort_key（DESC 排序下，最小值对应列表末尾）
+				const minKeyResult = await Sentry.startSpan(
+					{ name: 'db:query:min_sort_key', op: 'db' },
 					() =>
 						this.db
 							.select({
-								maxKey: sql<
+								minKey: sql<
 									string | null
-								>`MAX(${schema.playlistTracks.sortKey})`,
+								>`MIN(${schema.playlistTracks.sortKey})`,
 							})
 							.from(schema.playlistTracks)
 							.where(eq(schema.playlistTracks.playlistId, playlistId)),
 				)
-				let prevKey: string | null = maxKeyResult[0].maxKey ?? null
+				let prevKey: string | null = minKeyResult[0].minKey ?? null
 
-				// 构造批量插入的行，每条用 generateKeyBetween(prevKey, null) 追加到末端
+				// 构造批量插入的行，每条用 generateKeyBetween(null, prevKey) 追加到末端
 				const values = uniqueTrackIds(trackIds).map((tid) => {
-					const sortKey = generateKeyBetween(prevKey, null)
+					const sortKey = generateKeyBetween(null, prevKey)
 					prevKey = sortKey
 					return {
 						playlistId,

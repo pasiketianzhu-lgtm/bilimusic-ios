@@ -11,6 +11,7 @@ import type {
 } from 'expo-router/react-navigation'
 import { useTheme } from 'react-native-paper'
 
+import { PERSONAL_TABS } from '@/features/home/tabConfig'
 import useSkinStore from '@/hooks/stores/useSkinStore'
 import useActiveSkin from '@/hooks/theme/useActiveSkin'
 
@@ -30,7 +31,10 @@ interface nonNullableIcon {
 
 const searchIcon = Icon.getImageSourceSync('magnify', 24) as nonNullableIcon
 const libraryIcon = Icon.getImageSourceSync('bookshelf', 24) as nonNullableIcon
-const downloadIcon = Icon.getImageSourceSync('download-box-outline', 24) as nonNullableIcon
+const downloadIcon = Icon.getImageSourceSync(
+	'download-box-outline',
+	24,
+) as nonNullableIcon
 const profileIcon = Icon.getImageSourceSync('account', 24) as nonNullableIcon
 
 export default function TabLayout() {
@@ -60,9 +64,9 @@ export default function TabLayout() {
 			initialRouteName='index'
 		>
 			<Tabs.Screen
-				name='index'
+				name={PERSONAL_TABS[0].name}
 				options={{
-					title: '首页',
+					title: PERSONAL_TABS[0].label,
 					tabBarIcon: ({ focused }) => {
 						// 旧皮肤仍使用 home 作为第一个标签的图标槽位。
 						const icon = focused
@@ -70,37 +74,37 @@ export default function TabLayout() {
 							: skinIcons?.home.default
 						return icon ? { uri: icon, scale: 1 } : searchIcon
 					},
-					tabBarLabel: '首页',
+					tabBarLabel: PERSONAL_TABS[0].label,
 					lazy: true,
 				}}
 			/>
 			<Tabs.Screen
-				name='library/[tab]'
+				name={PERSONAL_TABS[1].name}
 				options={{
-					title: '歌单',
+					title: PERSONAL_TABS[1].label,
 					tabBarIcon: ({ focused }) => {
 						const icon = focused
 							? skinIcons?.library.selected
 							: skinIcons?.library.default
 						return icon ? { uri: icon, scale: 1 } : libraryIcon
 					},
-					tabBarLabel: '歌单',
+					tabBarLabel: PERSONAL_TABS[1].label,
 					lazy: true,
 				}}
 			/>
 			<Tabs.Screen
-				name='download'
+				name={PERSONAL_TABS[2].name}
 				options={{
-					title: '下载',
+					title: PERSONAL_TABS[2].label,
 					tabBarIcon: () => downloadIcon,
-					tabBarLabel: '下载',
+					tabBarLabel: PERSONAL_TABS[2].label,
 					lazy: true,
 				}}
 			/>
 			<Tabs.Screen
-				name='my'
+				name={PERSONAL_TABS[3].name}
 				options={{
-					title: '我的',
+					title: PERSONAL_TABS[3].label,
 					tabBarIcon: ({ focused }) => {
 						// 旧皮肤仍使用 settings 作为第三个标签的图标槽位。
 						const icon = focused
@@ -108,7 +112,7 @@ export default function TabLayout() {
 							: skinIcons?.settings.default
 						return icon ? { uri: icon, scale: 1 } : profileIcon
 					},
-					tabBarLabel: '我的',
+					tabBarLabel: PERSONAL_TABS[3].label,
 					lazy: true,
 				}}
 			/>

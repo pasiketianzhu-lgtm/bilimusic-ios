@@ -22,12 +22,14 @@ import {
 	chapterBoundaryIndex,
 	chapterBoundaries,
 } from '@/features/player/utils/chapters'
+import useCurrentTrack from '@/hooks/player/useCurrentTrack'
 import useCurrentTrackId from '@/hooks/player/useCurrentTrackId'
 import useSmoothProgress from '@/hooks/player/useSmoothProgress'
 import useTrackDuration from '@/hooks/player/useTrackProgress'
 import useSkinStore from '@/hooks/stores/useSkinStore'
 import useActiveSkin from '@/hooks/theme/useActiveSkin'
 import { seekWithinTrack } from '@/lib/player/seek'
+import { isLongContent } from '@/lib/services/playlistRules'
 import { toastAndLogError } from '@/utils/error-handling'
 import * as Haptics from '@/utils/haptics'
 import { formatDurationToHHMMSS } from '@/utils/time'
@@ -108,6 +110,8 @@ export function PlayerSlider({ onInteraction }: PlayerSliderProps = {}) {
 	const trackId = useCurrentTrackId()
 	const nativeDuration = useTrackDuration()
 	const { chapters, podcast } = usePlayerChapters()
+	const track = useCurrentTrack()
+	const showSkip = podcast || isLongContent(track?.duration)
 	const canSeek = Number.isFinite(nativeDuration) && nativeDuration > 0
 	const markers = useMemo(
 		() => (podcast ? chapterBoundaries(chapters, nativeDuration) : []),
@@ -337,8 +341,8 @@ export function PlayerSlider({ onInteraction }: PlayerSliderProps = {}) {
 					}}
 				/>
 			)}
-			<View style={podcast ? styles.podcastSliderRow : undefined}>
-				{podcast && (
+			<View style={showSkip ? styles.podcastSliderRow : undefined}>
+				{showSkip && (
 					<IconButton
 						icon='rewind-15'
 						accessibilityLabel='后退 15 秒'
@@ -350,7 +354,7 @@ export function PlayerSlider({ onInteraction }: PlayerSliderProps = {}) {
 					/>
 				)}
 				<PlatformSlider
-					style={podcast ? styles.podcastSlider : styles.slider}
+					style={showSkip ? styles.podcastSlider : styles.slider}
 					enabled={canSeek}
 					chapterMarkers={markers}
 					progress={progressFraction}
@@ -378,7 +382,7 @@ export function PlayerSlider({ onInteraction }: PlayerSliderProps = {}) {
 					onDragStateChange={handleDragStateChange}
 				/>
 
-				{podcast && (
+				{showSkip && (
 					<IconButton
 						icon='fast-forward-15'
 						accessibilityLabel='前进 15 秒'

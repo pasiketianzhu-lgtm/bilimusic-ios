@@ -69,6 +69,7 @@ export interface LyricFileData {
 	misc?:
 		| {
 				userOffset?: number | undefined // 用户设置的歌词偏移量
+				source?: 'video-subtitle'
 		  }
 		| undefined
 }

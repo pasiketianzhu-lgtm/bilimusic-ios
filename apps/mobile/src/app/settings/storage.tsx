@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MenuView } from '@/components/common/FunctionalMenu'
 import IconButton from '@/components/common/IconButton'
 import SettingsSectionTitle from '@/components/common/SettingsSectionTitle'
+import DownloadQualitySetting from '@/features/downloads/DownloadQualitySetting'
 import StorageUsageChart, {
 	type StorageSegment,
 } from '@/features/storage/StorageUsageChart'
@@ -198,6 +199,7 @@ export default function StorageSettingsPage() {
 					title='下载'
 					first
 				/>
+				<DownloadQualitySetting />
 				<View style={styles.settingRow}>
 					<View style={styles.settingTextContainer}>
 						<Text>同时下载数量</Text>
