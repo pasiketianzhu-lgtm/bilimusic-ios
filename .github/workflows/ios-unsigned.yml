@@ -1,0 +1,63 @@
+name: BiliMusic iOS unsigned
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/personal-music-v1]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-unsigned-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      APP_VARIANT: preview
+      VERSION_CODE: '1'
+      SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - name: Show Apple toolchain
+        run: |
+          xcodebuild -version
+          xcrun swift --version
+          pod --version
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate native iOS project
+        run: pnpm --filter @bbplayer/mobile exec expo prebuild --platform ios --clean --no-install
+      - name: Install iOS dependencies
+        working-directory: apps/mobile/ios
+        run: pod install
+      - name: Verify queue, build device app and package IPA
+        working-directory: apps/mobile
+        run: bash scripts/build-ios-unsigned.sh
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: BiliMusic-personal-v1-unsigned
+          path: apps/mobile/build/BiliMusic-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload Xcode diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-diagnostics
+          path: apps/mobile/build/unsigned-xcode.log
+          if-no-files-found: ignore
+          retention-days: 7
