@@ -7,6 +7,7 @@ import { fetch as NetInfoFetch } from '@react-native-community/netinfo'
 import { PermissionsAndroid, Platform } from 'react-native'
 
 import { lyricsQueryKeys } from '@/hooks/queries/lyrics'
+import { useListeningHistoryStore } from '@/hooks/stores/useListeningHistoryStore'
 import { usePlaybackFailureStore } from '@/hooks/stores/usePlaybackFailureStore'
 import { queryClient } from '@/lib/config/queryClient'
 import lyricService from '@/lib/services/lyricService'
@@ -48,6 +49,7 @@ function isUserSidePlaybackErrorCode(errorCode: number): boolean {
 }
 
 class PlayerSideEffects {
+	private historyTask: Promise<void> = Promise.resolve()
 	private initialized = false
 	private isHandlingSpectrumVisualizerError = false
 
@@ -86,6 +88,28 @@ class PlayerSideEffects {
 	private registerHeadlessTask() {
 		registerOrpheusHeadlessTask(async (event) => {
 			if (event.eventName === 'onTrackStarted') {
+				const startedAt = Date.now()
+				const snapshot = Promise.all([
+					Orpheus.getQueue(),
+					Orpheus.getShuffleMode(),
+				]).catch((error: unknown) => {
+					logger.warning('读取播放历史快照失败', { error })
+					return null
+				})
+				this.historyTask = this.historyTask
+					.then(async () => {
+						const result = await snapshot
+						if (!result) return
+						const [queue, random] = result
+						const track = queue.find((item) => item.id === event.trackId)
+						if (track)
+							useListeningHistoryStore
+								.getState()
+								.recordTrack(track, random, startedAt)
+					})
+					.catch((error: unknown) =>
+						logger.warning('保存播放历史失败', { error }),
+					)
 				await lyricService.pushLyricsToOverlays(event.trackId)
 			} else if (event.eventName === 'onTrackFinished') {
 				await finalizeAndRecordCurrentTrack(

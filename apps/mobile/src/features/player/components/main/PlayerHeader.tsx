@@ -8,14 +8,13 @@ import IconButton from '@/components/common/IconButton'
 import { usePlayerHeaderAnimation } from '@/features/player/hooks/usePlayerHeaderAnimation'
 import useCurrentTrack from '@/hooks/player/useCurrentTrack'
 import { useBatchDownloadStatus } from '@/hooks/queries/orpheus'
+import { useModalStore } from '@/hooks/stores/useModalStore'
 
 export function PlayerHeader({
-	onMorePress,
 	onBack,
 	index,
 	scrollX,
 }: {
-	onMorePress: () => void
 	onBack: () => void
 	index: number
 	scrollX?: SharedValue<number>
@@ -69,9 +68,11 @@ export function PlayerHeader({
 				</Animated.View>
 			</View>
 			<IconButton
-				icon='dots-vertical'
+				icon='share-variant-outline'
 				size={24}
-				onPress={onMorePress}
+				accessibilityLabel='分享歌曲'
+				disabled={!currentTrack}
+				onPress={() => useModalStore.getState().open('SongShare', undefined)}
 			/>
 		</View>
 	)

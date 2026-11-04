@@ -326,7 +326,6 @@ export default function PlayerPage() {
 					>
 						<Computed>
 							<PlayerHeader
-								onMorePress={() => setMenuVisible(true)}
 								onBack={handleDismiss}
 								index={
 									playbackContextStore$.context.mode.get() === 'podcast'
@@ -345,6 +344,7 @@ export default function PlayerPage() {
 											jumpTo={jumpTo}
 											imageRef={coverRef}
 											onPresent={() => {}}
+											onMorePress={() => setMenuVisible(true)}
 										/>
 									</View>
 									<View style={styles.landscapeLyrics}>
@@ -376,6 +376,7 @@ export default function PlayerPage() {
 												jumpTo={jumpTo}
 												imageRef={coverRef}
 												onPresent={() => {}}
+												onMorePress={() => setMenuVisible(true)}
 											/>
 										</View>,
 										...(playbackContextStore$.context.mode.get() === 'podcast'

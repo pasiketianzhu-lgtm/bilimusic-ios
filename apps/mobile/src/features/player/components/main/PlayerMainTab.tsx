@@ -1,7 +1,7 @@
 import { Show } from '@legendapp/state/react'
 import type { ImageRef } from 'expo-image'
 import { useRouter } from 'expo-router'
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -12,6 +12,7 @@ import { playbackContextStore$ } from '@/hooks/stores/playbackContextStore'
 import { usePlayerQueueSheetStore } from '@/hooks/stores/usePlayerQueueSheetStore'
 import * as Haptics from '@/utils/haptics'
 
+import PlayerActions from './PlayerActions'
 import { PlayerSlider } from './PlayerSlider'
 import { TrackInfo } from './PlayerTrackInfo'
 
@@ -19,13 +20,16 @@ interface PlayerMainTabProps {
 	jumpTo: (key: string) => void
 	imageRef: ImageRef | null
 	onPresent: () => void
+	onMorePress: () => void
 }
 
 const PlayerMainTab = memo(function PlayerMainTab({
 	jumpTo,
 	imageRef,
 	onPresent,
+	onMorePress,
 }: PlayerMainTabProps) {
+	const [viewportHeight, setViewportHeight] = useState(700)
 	const router = useRouter()
 	const insets = useSafeAreaInsets()
 	const currentTrack = useCurrentTrack()
@@ -34,10 +38,12 @@ const PlayerMainTab = memo(function PlayerMainTab({
 	return (
 		<Show if={playbackContextStore$.ready}>
 			<ScrollView
+				onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
 				contentContainerStyle={styles.container}
 				showsVerticalScrollIndicator={false}
 			>
 				<TrackInfo
+					maxCoverSize={Math.max(150, viewportHeight - 340)}
 					onArtistPress={() =>
 						currentTrack.artist?.remoteId
 							? router.navigate({
@@ -55,10 +61,11 @@ const PlayerMainTab = memo(function PlayerMainTab({
 
 				<View
 					style={[
-						{ paddingBottom: Math.max(insets.bottom + 20, 20) },
+						{ paddingBottom: Math.max(insets.bottom + 8, 20) },
 						styles.controlsContainer,
 					]}
 				>
+					<PlayerActions onMorePress={onMorePress} />
 					<PlayerSlider />
 					<PlayerControls
 						onOpenQueue={() => {

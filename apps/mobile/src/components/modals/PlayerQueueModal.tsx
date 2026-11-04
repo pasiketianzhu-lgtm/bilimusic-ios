@@ -1,6 +1,5 @@
 import type { Track as OrpheusTrack } from '@bbplayer/orpheus'
 import { Orpheus } from '@bbplayer/orpheus'
-import { Icon } from '@expo/ui'
 import type { LegendListRef } from '@legendapp/list/react-native'
 import { LegendList } from '@legendapp/list/react-native'
 import {
@@ -17,44 +16,30 @@ import {
 	Touchable,
 	usePanGesture,
 } from 'react-native-gesture-handler'
-import { Text, useTheme } from 'react-native-paper'
+import { Text, TouchableRipple, useTheme } from 'react-native-paper'
 import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
 } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { MenuView } from '@/components/common/FunctionalMenu'
 import IconButton from '@/components/common/IconButton'
 import { alert } from '@/components/modals/AlertModal'
+import { requestDownloads } from '@/features/downloads/requestDownloads'
+import PlaybackModeButton from '@/features/player/components/controls/PlaybackModeButton'
+import QueueHistoryPanel from '@/features/player/components/main/QueueHistoryPanel'
 import useCurrentTrackIdHook from '@/hooks/player/useCurrentTrackId'
 import { useIsCurrentTrack } from '@/hooks/player/useIsCurrentTrack'
-import { useShuffleMode } from '@/hooks/queries/orpheus'
+import { useListeningHistoryStore } from '@/hooks/stores/useListeningHistoryStore'
 import { useModalStore } from '@/hooks/stores/useModalStore'
 import { usePlayerQueueSheetStore } from '@/hooks/stores/usePlayerQueueSheetStore'
 import { usePlayerQueueStore } from '@/hooks/stores/usePlayerQueueStore'
 import { useDeferredSheetAction } from '@/hooks/ui/useDeferredSheetAction'
-import { useMenuActions } from '@/hooks/ui/useMenuActions'
 import { clearPlaybackQueue } from '@/lib/player/playbackSession'
-import { analyticsService } from '@/lib/services/analyticsService'
 import { toastAndLogError } from '@/utils/error-handling'
 import * as Haptics from '@/utils/haptics'
 
-const CLEAR_QUEUE_ICON = Icon.select({
-	ios: 'trash',
-	android: import('@expo/material-symbols/delete.xml'),
-})
-
-const REVERSE_QUEUE_ICON = Icon.select({
-	ios: 'arrow.up.arrow.down',
-	android: import('@expo/material-symbols/swap_vert.xml'),
-})
-
-const SAVE_QUEUE_ICON = Icon.select({
-	ios: 'square.and.arrow.down',
-	android: import('@expo/material-symbols/save.xml'),
-})
-
-const ROW_HEIGHT = 64
+const ROW_HEIGHT = 52
 const EDGE_ZONE = 64
 const SCROLL_STEP = 8
 
@@ -92,9 +77,7 @@ const TrackItem = memo(
 				<View
 					collapsable={false}
 					style={{
-						backgroundColor: isCurrentTrack
-							? colors.elevation.level5
-							: undefined,
+						backgroundColor: isCurrentTrack ? 'transparent' : undefined,
 						overflow: 'hidden',
 						height: ROW_HEIGHT,
 						opacity: isDragging ? 0.35 : 1,
@@ -103,7 +86,12 @@ const TrackItem = memo(
 					<Touchable
 						style={{ flex: 1 }}
 						androidRipple={{}}
-						onPress={() => onSwitchTrack(index)}
+						onPress={() => {
+							void Promise.resolve(onSwitchTrack(index)).catch(
+								(error: unknown) =>
+									toastAndLogError('切换歌曲失败', error, 'Player.Queue'),
+							)
+						}}
 					>
 						<View
 							style={{
@@ -119,29 +107,47 @@ const TrackItem = memo(
 									paddingRight: 0,
 									flex: 1,
 									marginLeft: 12,
-									flexDirection: 'column',
+									flexDirection: 'row',
 								}}
 							>
 								<Text
-									variant='bodyMedium'
 									numberOfLines={1}
-									style={{ fontWeight: 'bold' }}
+									style={{
+										flex: 1,
+										fontSize: 16,
+										color: isCurrentTrack ? '#20c997' : colors.onSurface,
+									}}
 								>
 									{track.title}
+									<Text
+										style={{
+											fontSize: 14,
+											color: isCurrentTrack
+												? '#20c997'
+												: colors.onSurfaceVariant,
+										}}
+									>
+										{' '}
+										- {track.artist ?? '未知作者'}
+									</Text>
 								</Text>
-								<Text
-									variant='bodySmall'
-									style={{ fontWeight: 'thin' }}
-									numberOfLines={1}
-								>
-									{track.artist ?? '未知作者'}
-								</Text>
+								{isCurrentTrack && (
+									<Text
+										style={{ color: '#20c997', marginLeft: 8, fontSize: 20 }}
+									>
+										▂▆▃
+									</Text>
+								)}
 							</View>
 							<IconButton
-								icon='close-circle-outline'
+								icon='close'
+								accessibilityLabel={`移除 ${track.title}`}
 								size={24}
 								onPress={() => {
-									onRemoveTrack(index)
+									void Promise.resolve(onRemoveTrack(index)).catch(
+										(error: unknown) =>
+											toastAndLogError('移除歌曲失败', error, 'Player.Queue'),
+									)
 								}}
 							/>
 						</View>
@@ -159,6 +165,12 @@ interface PlayerQueueModalProps extends TrueSheetProps {
 }
 
 function PlayerQueueModal({ sheetRef, ...props }: PlayerQueueModalProps) {
+	const insets = useSafeAreaInsets()
+	const [tab, setTab] = useState<'queue' | 'history' | 'playlists' | 'random'>(
+		'queue',
+	)
+	const historyEntries = useListeningHistoryStore((state) => state.entries)
+	const playedPlaylists = useListeningHistoryStore((state) => state.playlists)
 	const [clearing, setClearing] = useState(false)
 	const { deferAction, runPendingAction } = useDeferredSheetAction()
 
@@ -237,7 +249,6 @@ function PlayerQueueModal({ sheetRef, ...props }: PlayerQueueModalProps) {
 	useEffect(() => {
 		queueRef.current = queue
 	}, [queue])
-	const { data: shuffleMode } = useShuffleMode()
 
 	const currentIndex = useMemo(() => {
 		if (!currentTrackId) return -1
@@ -249,7 +260,10 @@ function PlayerQueueModal({ sheetRef, ...props }: PlayerQueueModalProps) {
 			if (index === -1) return
 			const target = queue[index]
 			if (!target) return
-			if (target.id === currentTrackId) return
+			if (target.id === currentTrackId) {
+				await Orpheus.play()
+				return
+			}
 			await Orpheus.skipTo(index)
 		},
 		[queue, currentTrackId],
@@ -362,12 +376,6 @@ function PlayerQueueModal({ sheetRef, ...props }: PlayerQueueModalProps) {
 		}
 	}, [stopAutoScroll])
 
-	const reverseRemainingQueueHandler = useCallback(async () => {
-		void Haptics.performHaptics(Haptics.AndroidHaptics.Confirm)
-		await Orpheus.reverseRemainingQueue()
-		void analyticsService.logPlayerQueueAction('reverse_remaining')
-	}, [])
-
 	const keyExtractor = useCallback((item: OrpheusTrack) => item.id, [])
 
 	const renderItem = useCallback(
@@ -394,14 +402,26 @@ function PlayerQueueModal({ sheetRef, ...props }: PlayerQueueModalProps) {
 	)
 
 	const scrollToCurrent = useCallback(() => {
-		if (currentIndex === -1 || !queue.length || didInitialScroll) return
+		if (
+			tab !== 'queue' ||
+			currentIndex === -1 ||
+			!queue.length ||
+			didInitialScroll
+		)
+			return
 		void flatListRef.current?.scrollToIndex({
 			animated: false,
 			index: currentIndex,
 			viewPosition: 0.5,
 		})
 		setDidInitialScroll(true)
-	}, [currentIndex, queue.length, didInitialScroll])
+	}, [tab, currentIndex, queue.length, didInitialScroll])
+
+	useEffect(() => {
+		if (tab !== 'queue') return
+		const frame = requestAnimationFrame(scrollToCurrent)
+		return () => cancelAnimationFrame(frame)
+	}, [tab, scrollToCurrent])
 
 	const saveQueueToPlaylistHandler = useCallback(() => {
 		if (queue.length === 0) return
@@ -412,37 +432,11 @@ function PlayerQueueModal({ sheetRef, ...props }: PlayerQueueModalProps) {
 		)
 	}, [queue, dismissWithAction])
 
-	const menuActions = useMenuActions([
-		{
-			title: '反序剩余歌曲',
-			image: REVERSE_QUEUE_ICON,
-			onPress: () => {
-				void reverseRemainingQueueHandler()
-			},
-			attributes: {
-				disabled:
-					queue.length === 0 || currentIndex === -1 || shuffleMode !== false,
-			},
-		},
-		{
-			title: '保存为播放列表',
-			image: SAVE_QUEUE_ICON,
-			onPress: saveQueueToPlaylistHandler,
-			attributes: { disabled: queue.length === 0 },
-		},
-		{
-			title: '清空播放队列',
-			image: CLEAR_QUEUE_ICON,
-			onPress: clearQueue,
-			attributes: { disabled: clearing || queue.length === 0 },
-		},
-	])
-
 	return (
 		<TrueSheet
 			name='playerQueueModal'
 			ref={sheetRef}
-			detents={[0.75, 1]}
+			detents={[0.65, 0.95]}
 			cornerRadius={24}
 			backgroundColor={theme.colors.elevation.level1}
 			style={{ flex: 1 }}
@@ -467,53 +461,175 @@ function PlayerQueueModal({ sheetRef, ...props }: PlayerQueueModalProps) {
 						flex: 1,
 					}}
 				>
-					<View
-						style={{
-							flexDirection: 'row',
-							justifyContent: 'space-between',
-							alignItems: 'center',
-							paddingHorizontal: 16,
-							paddingTop: 16,
-							borderBottomWidth: 1,
-							borderBottomColor: theme.colors.elevation.level2,
-						}}
-					>
-						<Text variant='titleMedium'>播放队列 ({queue.length})</Text>
-						<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-							<MenuView {...menuActions}>
+					<View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
+						<View
+							style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+						>
+							{(
+								[
+									['queue', '正在播放', queue.length],
+									['history', '已播歌曲', historyEntries.length],
+									['playlists', '已播歌单', playedPlaylists.length],
+								] as const
+							).map(([key, title, count]) => (
+								<TouchableRipple
+									key={key}
+									onPress={() => {
+										stopAutoScroll()
+										dragRef.current = null
+										setDrag(null)
+										setTab(key)
+										setDidInitialScroll(false)
+									}}
+									accessibilityRole='tab'
+									accessibilityState={{ selected: tab === key }}
+								>
+									<View
+										style={{
+											paddingVertical: 12,
+											borderBottomWidth: 2,
+											borderBottomColor:
+												tab === key ? theme.colors.onSurface : 'transparent',
+										}}
+									>
+										<Text
+											style={{
+												fontSize: 16,
+												color:
+													tab === key
+														? theme.colors.onSurface
+														: theme.colors.onSurfaceVariant,
+											}}
+										>
+											{title} <Text style={{ fontSize: 12 }}>{count}</Text>
+										</Text>
+									</View>
+								</TouchableRipple>
+							))}
+						</View>
+						<View
+							style={{
+								flexDirection: 'row',
+								alignItems: 'center',
+								justifyContent: 'space-between',
+								flexWrap: 'wrap',
+								paddingVertical: 8,
+							}}
+						>
+							<View
+								style={{
+									flexDirection: 'row',
+									alignItems: 'center',
+									flexShrink: 1,
+								}}
+							>
+								<PlaybackModeButton showLabel />
+								<TouchableRipple
+									onPress={() => {
+										stopAutoScroll()
+										dragRef.current = null
+										setDrag(null)
+										setTab(tab === 'random' ? 'queue' : 'random')
+										setDidInitialScroll(false)
+									}}
+									accessibilityLabel='查看随机播放历史'
+								>
+									<Text
+										style={{
+											padding: 8,
+											fontSize: 13,
+											color:
+												tab === 'random'
+													? '#20c997'
+													: theme.colors.onSurfaceVariant,
+										}}
+									>
+										随机历史 ›
+									</Text>
+								</TouchableRipple>
+							</View>
+							<View style={{ flexDirection: 'row' }}>
 								<IconButton
-									icon='dots-vertical'
-									disabled={clearing}
-									loading={clearing}
-									testID='player-queue-menu'
+									icon='download-outline'
+									size={22}
+									accessibilityLabel='下载队列歌曲'
+									disabled={!queue.length}
+									onPress={() =>
+										dismissWithAction(() => {
+											void requestDownloads(queue).catch((error: unknown) =>
+												toastAndLogError('下载队列失败', error, 'Player.Queue'),
+											)
+										})
+									}
 								/>
-							</MenuView>
+								<IconButton
+									icon='plus-box-outline'
+									size={22}
+									accessibilityLabel='将队列加入歌单'
+									disabled={!queue.length}
+									onPress={saveQueueToPlaylistHandler}
+								/>
+								<IconButton
+									icon='trash-can-outline'
+									size={22}
+									accessibilityLabel='清空播放队列'
+									disabled={clearing || !queue.length}
+									onPress={clearQueue}
+								/>
+							</View>
 						</View>
 					</View>
 					<View
-						style={{ flex: 1, minHeight: 2, overflow: 'hidden' }}
+						style={{
+							flex: 1,
+							minHeight: 2,
+							overflow: 'hidden',
+							paddingBottom: insets.bottom,
+						}}
 						onLayout={(event) => {
 							listHeightRef.current = event.nativeEvent.layout.height
 						}}
 					>
-						<LegendList
-							ref={flatListRef}
-							data={queue}
-							renderItem={renderItem}
-							keyExtractor={keyExtractor}
-							recycleItems
-							showsVerticalScrollIndicator={false}
-							nestedScrollEnabled
-							scrollEnabled={drag === null}
-							onScroll={(event) => {
-								scrollOffsetRef.current = event.nativeEvent.contentOffset.y
-								if (dragRef.current)
-									updateDropTarget(dragTranslationRef.current)
-							}}
-							onContentSizeChange={(_width, height) => {
-								contentHeightRef.current = height
-							}}
-						/>
+						{tab !== 'queue' ? (
+							<QueueHistoryPanel
+								key={tab}
+								mode={tab}
+								listRef={flatListRef}
+								dismissWithAction={dismissWithAction}
+							/>
+						) : (
+							<LegendList
+								ref={flatListRef}
+								key='queue'
+								data={queue}
+								extraData={currentTrackId}
+								ListEmptyComponent={
+									<Text
+										style={{
+											textAlign: 'center',
+											padding: 32,
+											color: theme.colors.onSurfaceVariant,
+										}}
+									>
+										队列为空，选择一首音乐开始播放
+									</Text>
+								}
+								renderItem={renderItem}
+								keyExtractor={keyExtractor}
+								recycleItems
+								showsVerticalScrollIndicator={false}
+								nestedScrollEnabled
+								scrollEnabled={drag === null}
+								onScroll={(event) => {
+									scrollOffsetRef.current = event.nativeEvent.contentOffset.y
+									if (dragRef.current)
+										updateDropTarget(dragTranslationRef.current)
+								}}
+								onContentSizeChange={(_width, height) => {
+									contentHeightRef.current = height
+								}}
+							/>
+						)}
 						{drag && (
 							<Animated.View
 								pointerEvents='none'

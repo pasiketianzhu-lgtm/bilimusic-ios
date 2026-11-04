@@ -9,6 +9,7 @@ import {
 	assertPlaybackContextAvailable,
 } from '@/hooks/stores/playbackContextStore'
 import useAppStore from '@/hooks/stores/useAppStore'
+import { useListeningHistoryStore } from '@/hooks/stores/useListeningHistoryStore'
 import { usePlayerQueueStore } from '@/hooks/stores/usePlayerQueueStore'
 import usePlayerStore from '@/hooks/stores/usePlayerStore'
 import { playlistService } from '@/lib/services/playlistService'
@@ -64,6 +65,18 @@ async function submitTracks(options: QueueOptions, replace: boolean) {
 	setPlaybackContext(context)
 	if (options.playNow && (options.playNext || !options.startFromKey))
 		await Orpheus.play()
+	if (
+		options.playlistId !== undefined &&
+		(replace || options.playNow || options.startFromKey)
+	) {
+		const metadata = await playlistService.getPlaylistMetadata(
+			options.playlistId,
+		)
+		if (metadata.isOk() && metadata.value)
+			useListeningHistoryStore
+				.getState()
+				.recordPlaylist(options.playlistId, metadata.value.title)
+	}
 }
 
 /** Replace the queue and begin a new continuous playback experience. */

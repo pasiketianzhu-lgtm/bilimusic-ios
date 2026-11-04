@@ -6,12 +6,18 @@ import defaultDb from '@/lib/db/db'
 import * as schema from '@/lib/db/schema'
 import { createFacadeError } from '@/lib/errors/facade'
 import { createValidationError } from '@/lib/errors/service'
-import { artistService as artistServiceInstance, type ArtistService } from '@/lib/services/artistService'
+import {
+	artistService as artistServiceInstance,
+	type ArtistService,
+} from '@/lib/services/artistService'
 import {
 	playlistService as playlistServiceInstance,
 	type PlaylistService,
 } from '@/lib/services/playlistService'
-import { trackService as trackServiceInstance, type TrackService } from '@/lib/services/trackService'
+import {
+	trackService as trackServiceInstance,
+	type TrackService,
+} from '@/lib/services/trackService'
 import { playlistSyncWorker } from '@/lib/workers/PlaylistSyncWorker'
 import type { CreateArtistPayload } from '@/types/services/artist'
 import type {
@@ -407,11 +413,15 @@ export class PlaylistFacade {
 	}
 
 	/**
-	 * 将播放队列保存为新的播放列表
+	 * 将播放队列保存到新歌单或已有本地歌单
 	 * @param name 播放列表名称
 	 * @param uniqueKeys 队列中的 track uniqueKeys
 	 */
-	public async saveQueueAsPlaylist(name: string, uniqueKeys: string[]) {
+	public async saveQueueAsPlaylist(
+		name: string,
+		uniqueKeys: string[],
+		targetPlaylistId?: number,
+	) {
 		logger.info('开始将队列保存为播放列表', {
 			name,
 			trackCount: uniqueKeys.length,
@@ -421,15 +431,22 @@ export class PlaylistFacade {
 				const playlistSvc = this.playlistService.withDB(tx)
 				const trackSvc = this.trackService.withDB(tx)
 
-				// 1. 创建播放列表
-				const playlistRes = await playlistSvc.createPlaylist({
-					title: name,
-					type: 'local',
-					authorId: null,
-					remoteSyncId: null,
-				})
+				const playlistRes =
+					targetPlaylistId === undefined
+						? await playlistSvc.createPlaylist({
+								title: name,
+								type: 'local',
+								authorId: null,
+								remoteSyncId: null,
+							})
+						: await playlistSvc.getPlaylistById(targetPlaylistId)
 				if (playlistRes.isErr()) throw playlistRes.error
 				const playlist = playlistRes.value
+				if (!playlist || playlist.type !== 'local' || playlist.shareId)
+					throw createFacadeError(
+						'PlaylistPermissionDenied',
+						'请选择可编辑的本地歌单',
+					)
 
 				// 2. 验证所有 tracks 在本地存在，并获取 ID
 				const distinctKeys = Array.from(new Set(uniqueKeys))
