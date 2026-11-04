@@ -240,6 +240,12 @@ public class ExpoOrpheusModule: Module {
         GeneralStorage.shared.downloadQuality = quality
     }
 
+    Function("getSavedTrackPosition") { (id: String) -> Double in
+        let track = Track()
+        track.id = id
+        return GeneralStorage.shared.trackPosition(track)
+    }
+
     Function("getTrackBehavior") { (id: String, duration: Double) -> [String: Bool] in
         var track = Track()
         track.id = id

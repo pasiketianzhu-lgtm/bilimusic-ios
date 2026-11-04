@@ -10,7 +10,7 @@ import * as schema from '@/lib/db/schema'
 import { trackService } from '@/lib/services/trackService'
 import { addToQueue } from '@/utils/player'
 
-export default function RecentTracks({ limit = 50 }: { limit?: number }) {
+export function useRecentTracks(limit = 50) {
 	const {
 		data: tracks = [],
 		refetch,
@@ -53,6 +53,11 @@ export default function RecentTracks({ limit = 50 }: { limit?: number }) {
 			void refetch()
 		}, [refetch]),
 	)
+	return { tracks, isError }
+}
+
+export default function RecentTracks({ limit = 50 }: { limit?: number }) {
+	const { tracks, isError } = useRecentTracks(limit)
 	return (
 		<>
 			{tracks.map((track) => (

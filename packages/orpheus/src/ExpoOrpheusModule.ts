@@ -333,6 +333,8 @@ declare class NativeOrpheusModule extends NativeModule<OrpheusEvents> {
 	pauseDownload(id: string): Promise<void>
 	getDownloadQuality(): Promise<number>
 	setDownloadQuality(quality: number): Promise<void>
+	/** Saved iOS per-track bookmark, in seconds. */
+	getSavedTrackPosition(id: string): number
 	getTrackBehavior(
 		id: string,
 		duration: number,
